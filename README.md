@@ -36,6 +36,10 @@ Manager receives a collaboration report → next round for that worker, or colla
    - Worker: its manager, current task, state, latest report, and a "Leave" action.
    - Not linked: the link form.
 3. **All tasks** — a board across every collaboration, grouped by **project**. Each row shows the worker, round, **working state** (`Working` / `Waiting for report` / `Idle` / `Finished`), waiting time, current task, and latest report. Refresh re-reads it.
+4. **Cross-device** — relay mode (off / self-hosted hub / free ntfy.sh), URL, room, token and device name; save/test, connection status, worker alias registration, and remote-worker linking.
+5. **Stage queue** (manager only) — pick a worker, add a stage title/prompt/acceptance, then start it, complete it (auto-dispatches the next), or remove a pending one.
+
+Right-click a conversation in the sidebar and choose **Set as project manager (new worker)**: the plugin creates and links a fresh worker, so that conversation becomes a manager.
 
 The manager card also shows the **project name** and lets you rename it.
 
@@ -96,6 +100,17 @@ The manager dispatches through the hub; the worker device prompts its local conv
 
 Security: the token is a shared secret for the room; anyone holding it can deliver prompts to devices in that room. Use a long random token, HTTPS (a tunnel), and a dedicated room. The hub keeps messages in memory only (15 minutes, 1000 per room) and is not a durable queue.
 
+If a tunnel is inconvenient, choose **Free public relay (ntfy.sh)** in the Settings card: no account and no deployment. The topic is derived from room + token; messages go through ntfy.sh in 4 KB chunks (the free tier allows about 250 publishes per day per IP). Use a long random token; this is not end-to-end encrypted.
+
+## Stage queue
+
+A human can pre-write several large stages for one worker; finishing one dispatches the next automatically.
+
+- Add stages in the manager's **Stage queue** card, or with `collab_stage({ action: "add", worker, title, prompt, acceptance })`.
+- `start` dispatches the first pending stage; when its acceptance passes, `complete` marks it done and dispatches the next pending stage in the same call.
+- A stage is a normal round: the worker reports as usual, and `complete` waits until no round is pending.
+- The queue is stored on the worker link; `remove` deletes a pending stage, `clear` removes all pending stages.
+
 ## Projects
 
 A project is the set of workers managed by one project-manager conversation. Different managers are different projects, so nothing mixes:
@@ -147,6 +162,7 @@ For an existing conversation, call `collab_sessions` to get its id, then `collab
 | `collab_link` | anyone | Link a worker; `role=worker` makes the current conversation the worker; `peer="new"` creates one; `mode` picks temporary/permanent; `project` names the project |
 | `collab_worker_create` | manager | Create a new worker conversation (name, preset/model), linked automatically; can dispatch the first round |
 | `collab_remote` | anyone | Cross-device: `alias` registers this conversation on the worker device; `link` binds a remote device/alias on the manager device |
+| `collab_stage` | manager | Stage queue: add/list/start/complete stages; `complete` dispatches the next one automatically |
 | `collab_dispatch` | manager | Dispatch one round; `worker` selects the worker (optional with a single worker), `acceptance` optional |
 | `collab_report` | worker | Report `summary` / `status`(done\|partial\|blocked) / `details` / `next` |
 | `collab_status` | anyone | A manager sees every worker's progress; a worker sees its manager and pending task |
@@ -168,6 +184,8 @@ The settings page uses it; it can also be typed manually:
 /collab project {"name":"…"}
 /collab create {"name":"前端","preset":"standard"}
 /collab remote {"action":"link","device":"laptop","worker":"frontend"}
+/collab stage {"action":"add","title":"阶段一","prompt":"…"}
+/collab relay {"action":"set","mode":"ntfy","hubRoom":"my-project","hubToken":"…"}
 /collab configure {"worker":"session-…","preset":"ptc"}
 /collab configure {"worker":"session-…","provider":"deepseek-account","model":"deepseek-flash"}
 /collab dispatch {"worker":"session-…","task":"…","acceptance":"…"}
@@ -200,6 +218,7 @@ The `collab-pair` row in `cordis.patch.yml`:
     hubRoom: 'default'
     hubToken: ''
     deviceName: ''           # defaults to the host name
+    relayMode: 'off'         # off | hub | ntfy
     addPrefix: true          # add the title prefix to linked conversations
     prefixManager: '【项目经理】'
     prefixWorker: '【员工】'
@@ -261,6 +280,10 @@ dsh plugin add dsh-collab-pair
    - 是员工：显示项目经理、当前任务、状态与最近回报，可**退出协作**。
    - 无关联：直接显示关联表单。
 3. **全部任务**：所有协作的任务看板，不限当前会话。每行显示员工、所属项目经理、第几轮、**工作状态**（`工作中` / `等待回报` / `空闲` / `已结束`）、等待时长、本轮任务、最近回报。点「刷新」重新读取。
+4. **跨设备协作**：中继模式（关闭 / 自建 hub / 免费 ntfy.sh）、URL、房间、令牌、设备名；保存/测试、连接状态、员工别名注册、远端员工关联。
+5. **阶段队列**（仅项目经理）：选员工，填标题/提示词/验收标准；可开始、完成并自动派发下一阶段、删除待开始阶段。
+
+在侧栏右键一个对话，选「设为项目经理（新建员工）」：插件会新建并关联一个员工，使该对话成为项目经理。
 
 页面只做关联/解除和查看，不代填目标、任务、验收——这些交给项目经理对话。
 
@@ -317,6 +340,17 @@ collab_dispatch({ worker: "前端", task: "…" })
 
 安全：token 是整个房间的共享密钥，持有它的人可以向该房间的设备投递提示词。请用足够长的随机 token、HTTPS（隧道）和专用房间。hub 只在内存里保留 15 分钟 / 每房间最多 1000 条消息，不是持久队列。
 
+如果内网穿透不方便，可在设置卡片里选 **免费公共中继（ntfy.sh）**：不用账号、不用部署。topic 由 room + token 派生；消息以 4 KB 分片经过 ntfy.sh（免费额度约每 IP 每天 250 次发布）。请用足够长的随机 token；这不是端到端加密。
+
+## 阶段队列
+
+人可以给同一个员工预先写好多个大阶段；完成一个阶段后自动派发下一个。
+
+- 在项目经理卡片的「阶段队列」里添加，或用 `collab_stage({ action: "add", worker, title, prompt, acceptance })`。
+- `start` 派发第一个待开始阶段；验收通过后 `complete` 标记完成，并在同一次调用里自动派发下一个待开始阶段。
+- 阶段本质就是普通的一轮：员工照常回报；仍有轮次在等待回报时，`complete` 会拒绝。
+- 队列保存在员工关联上；`remove` 删除待开始阶段，`clear` 清空所有待开始阶段。
+
 ## 项目
 
 一个项目就是「一个项目经理对话所管理的员工集合」。不同项目经理就是不同项目，互不混淆：
@@ -364,6 +398,7 @@ collab_dispatch({ worker: "前端", task: "…" })
 | `collab_link` | 任何人 | 关联员工；`role=worker` 表示当前对话成为对方的员工；`peer="new"` 新建；`mode` 选临时/永久；`project` 指定项目名 |
 | `collab_worker_create` | 项目经理 | 新建员工对话（可命名、设预设/模型），默认自动关联，可顺便派发第一轮 |
 | `collab_remote` | 任何人 | 跨设备：员工设备用 `alias` 注册对话；经理设备用 `link` 绑定远端设备/别名 |
+| `collab_stage` | 项目经理 | 阶段队列：add/list/start/complete；`complete` 会自动派发下一阶段 |
 | `collab_dispatch` | 项目经理 | 派发一轮；`worker` 指定员工（只有一个时可省略），`acceptance` 可选 |
 | `collab_report` | 员工 | 汇报 `summary` / `status`(done\|partial\|blocked) / `details` / `next` |
 | `collab_status` | 任何人 | 经理看所有员工进度；员工看自己的经理与待办 |
@@ -385,6 +420,8 @@ collab_dispatch({ worker: "前端", task: "…" })
 /collab project {"name":"…"}
 /collab create {"name":"前端","preset":"standard"}
 /collab remote {"action":"link","device":"laptop","worker":"frontend"}
+/collab stage {"action":"add","title":"阶段一","prompt":"…"}
+/collab relay {"action":"set","mode":"ntfy","hubRoom":"my-project","hubToken":"…"}
 /collab configure {"worker":"session-…","preset":"ptc"}
 /collab configure {"worker":"session-…","provider":"deepseek-account","model":"deepseek-flash"}
 /collab dispatch {"worker":"session-…","task":"…","acceptance":"…"}
@@ -417,6 +454,7 @@ collab_dispatch({ worker: "前端", task: "…" })
     hubRoom: 'default'
     hubToken: ''
     deviceName: ''           # 默认取主机名
+    relayMode: 'off'         # off | hub | ntfy
     addPrefix: true          # 是否给关联对话加标题前缀
     prefixManager: '【项目经理】'
     prefixWorker: '【员工】'

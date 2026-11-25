@@ -16,7 +16,7 @@
  *
  * @module @local/collab-pair
  */
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { hostname } from 'node:os'
 
 export const inject = ['tools', 'systemPrompt', 'agents', 'sessions', 'commands']
@@ -41,7 +41,7 @@ const DONE = 'done'
 const STOPPED = 'stopped'
 const REPORTS = new Set(['done', 'partial', 'blocked'])
 const PROMPT_TIMEOUT_MS = 180000
-const ENGINE = 'collab-pair/1.3.1'
+const ENGINE = 'collab-pair/1.4.0'
 
 /** A recoverable failure whose message is meant for the model. */
 class CollabError extends Error {}
@@ -71,6 +71,9 @@ function resolveConfig(raw) {
     hubRoom: typeof value.hubRoom === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(value.hubRoom) ? value.hubRoom : 'default',
     hubToken: typeof value.hubToken === 'string' ? value.hubToken.trim() : '',
     deviceName: deviceText(value.deviceName),
+    relayMode: value.relayMode === 'off' || value.relayMode === 'hub' || value.relayMode === 'ntfy'
+      ? value.relayMode
+      : (normalizeHubUrl(value.hubUrl) !== '' && typeof value.hubToken === 'string' && value.hubToken.trim() !== '' ? 'hub' : 'off'),
   }
 }
 
@@ -274,6 +277,7 @@ const LANGUAGES = {
         '规则：',
         '- 用 `collab_dispatch` 派发任务；有多个员工时用 `worker` 指定员工（sessionId 或标题），只有一个时可省略。',
         '- 需要新的员工对话时用 `collab_worker_create`（可命名、设预设/模型，并自动关联）。',
+        '- 阶段队列：用 `collab_stage` 添加/查看；当前阶段验收通过后调用 `collab_stage({action:"complete"})`，会自动派发下一阶段。',
         '- 需要调整某个员工的 agent 预设或模型时，用 `collab_configure`（worker 指定员工）。',
         '- 收到以【协作回报】开头的消息后，继续派发，或对该员工调用 `collab_done`；`collab_status` 查看全部进度。',
         '- 除非用户明确要求，不要自己执行员工的交付任务；你负责拆解、验收和决定下一步。',
@@ -413,6 +417,7 @@ const LANGUAGES = {
         'Rules:',
         '- Dispatch a round with `collab_dispatch`; when several workers exist, select one with `worker` (session id or title). With a single worker you may omit it.',
         '- To start a new worker conversation use `collab_worker_create` (name, preset/model, linked automatically).',
+        '- Stage queue: manage it with `collab_stage`; when the current stage passes acceptance, call `collab_stage({action:"complete"})` to dispatch the next stage automatically.',
         '- To change a worker\'s agent preset or model, use `collab_configure` (select the worker with `worker`).',
         '- When a message starting with [Collaboration report] arrives, dispatch the next round or call `collab_done` for that worker; `collab_status` shows every worker.',
         '- Unless the user explicitly asks, do not do the workers\' delivery work yourself; you break down, review, and decide.',
@@ -526,6 +531,8 @@ export function apply(ctx, rawConfig) {
   let remoteCursor = 0
   let remoteLastError = null
   let remoteLastPollAt = 0
+  let remoteNtfyCursor = ''
+  const ntfyParts = new Map()
   let remoteDomain = null
   const remoteReady = openRemoteStorage()
 
@@ -634,6 +641,7 @@ export function apply(ctx, rawConfig) {
       pending: normalizePending(value.pending),
       lastReport: value.lastReport !== null && typeof value.lastReport === 'object' ? value.lastReport : null,
       history: Array.isArray(value.history) ? value.history.slice(-cfg.maxHistory) : [],
+      stages: normalizeStages(value.stages),
       nudges: Number.isSafeInteger(value.nudges) && value.nudges >= 0 ? value.nudges : 0,
       ...(typeof value.lastNudgeAt === 'number' ? { lastNudgeAt: value.lastNudgeAt } : {}),
       ...(value.remote !== null && typeof value.remote === 'object'
@@ -648,9 +656,31 @@ export function apply(ctx, rawConfig) {
     }
   }
 
+  /** Fill missing fields on a stored stage queue. */
+  function normalizeStages(value) {
+    if (!Array.isArray(value)) return []
+    const stages = []
+    for (const item of value.slice(0, 100)) {
+      if (item === null || typeof item !== 'object') continue
+      const prompt = typeof item.prompt === 'string' ? item.prompt.trim() : ''
+      if (prompt === '') continue
+      const status = item.status === 'active' || item.status === 'done' ? item.status : 'pending'
+      stages.push({
+        id: typeof item.id === 'string' ? item.id : `st-${randomUUID().slice(0, 8)}`,
+        title: typeof item.title === 'string' ? item.title : '',
+        prompt,
+        acceptance: typeof item.acceptance === 'string' ? item.acceptance : '',
+        status,
+        ...(typeof item.startedAt === 'number' ? { startedAt: item.startedAt } : {}),
+        ...(typeof item.completedAt === 'number' ? { completedAt: item.completedAt } : {}),
+        ...(typeof item.summary === 'string' ? { summary: item.summary } : {}),
+      })
+    }
+    return stages
+  }
+
   /** Fill missing fields on a stored pending round. */
-  function normalizePending(value) {
-    if (value === null || typeof value !== 'object') return null
+  function normalizePending(value) {    if (value === null || typeof value !== 'object') return null
     if (!Number.isSafeInteger(value.round) || value.round < 1) return null
     if (typeof value.task !== 'string' || typeof value.requestId !== 'string') return null
     return {
@@ -701,6 +731,7 @@ export function apply(ctx, rawConfig) {
       for (const [key, value] of domain.table('aliases').entries()) adoptAlias(key, value)
       for (const [key, value] of domain.table('state').entries()) {
         if (key === 'cursor' && Number.isSafeInteger(value?.cursor) && value.cursor >= 0) remoteCursor = value.cursor
+        if (key === 'ntfy_cursor' && typeof value?.id === 'string') remoteNtfyCursor = value.id
       }
       remoteDomain = domain
       remoteState = 'ready'
@@ -752,13 +783,37 @@ export function apply(ctx, rawConfig) {
     if (domain === undefined) return
     try {
       await domain.table('state').put('cursor', { cursor: remoteCursor, updatedAt: Date.now() })
+      if (remoteNtfyCursor !== '') await domain.table('state').put('ntfy_cursor', { id: remoteNtfyCursor, updatedAt: Date.now() })
     } catch (error) {
       ctx.logger.warn(`collab-pair: saving the relay cursor failed: ${String(error)}`)
     }
   }
 
   function hubConfigured() {
-    return cfg.hubUrl !== '' && cfg.hubToken !== ''
+    return cfg.relayMode === 'hub' && cfg.hubUrl !== '' && cfg.hubToken !== ''
+  }
+
+  function ntfyConfigured() {
+    return cfg.relayMode === 'ntfy' && cfg.hubToken !== '' && cfg.hubRoom !== ''
+  }
+
+  function relayConfigured() {
+    return hubConfigured() || ntfyConfigured()
+  }
+
+  /** Client-safe view of the relay configuration and its last poll. */
+  function relayStatus() {
+    return {
+      mode: cfg.relayMode,
+      device: cfg.deviceName,
+      room: cfg.hubRoom,
+      hubUrl: cfg.hubUrl,
+      hasToken: cfg.hubToken !== '',
+      connected: remoteLastPollAt > 0,
+      lastPollAt: remoteLastPollAt === 0 ? null : isoTime(remoteLastPollAt),
+      lastError: remoteLastError,
+      cursor: cfg.relayMode === 'ntfy' ? (remoteNtfyCursor || null) : remoteCursor,
+    }
   }
 
   /** One authenticated JSON request to the relay. */
@@ -785,40 +840,130 @@ export function apply(ctx, rawConfig) {
 
   /** Queue one message for another device. */
   async function sendRemote(to, type, payload) {
-    if (!hubConfigured()) throw new CollabError('尚未配置跨设备中继：请在插件配置中设置 hubUrl 与 hubToken。')
+    if (!relayConfigured()) {
+      throw new CollabError('跨设备中继未启用：请在设置页的「跨设备协作」里选择中继并保存。')
+    }
+    if (cfg.relayMode === 'ntfy') return ntfySend(to, type, payload)
     return hubFetch('/v1/send', {
       method: 'POST',
       body: JSON.stringify({ room: cfg.hubRoom, from: cfg.deviceName, to, type, payload }),
     })
   }
 
-  /** Long-poll the relay and dispatch incoming envelopes. */
-  async function remoteLoop() {
-    if (!hubConfigured()) return
-    ctx.logger.info(`collab-pair: relay transport for ${cfg.deviceName} on room ${cfg.hubRoom}`)
-    while (alive && hubConfigured()) {
+  /** One long-poll round against the self-hosted hub. */
+  async function hubPollOnce() {
+    if (remoteCursor === 0) {
+      const head = await hubFetch(`/v1/head?room=${encodeURIComponent(cfg.hubRoom)}`)
+      remoteCursor = Number.isSafeInteger(head.cursor) ? head.cursor : 0
+      await saveRemoteCursor()
+    }
+    const query = `?room=${encodeURIComponent(cfg.hubRoom)}&device=${encodeURIComponent(cfg.deviceName)}&since=${remoteCursor}`
+    const result = await hubFetch(`/v1/poll${query}`)
+    remoteLastPollAt = Date.now()
+    remoteLastError = null
+    let advanced = false
+    for (const message of Array.isArray(result.messages) ? result.messages : []) {
+      if (!Number.isSafeInteger(message?.id) || message.id <= remoteCursor) continue
+      remoteCursor = message.id
+      advanced = true
       try {
-        if (remoteCursor === 0) {
-          const head = await hubFetch(`/v1/head?room=${encodeURIComponent(cfg.hubRoom)}`)
-          remoteCursor = Number.isSafeInteger(head.cursor) ? head.cursor : 0
-          await saveRemoteCursor()
-        }
-        const query = `?room=${encodeURIComponent(cfg.hubRoom)}&device=${encodeURIComponent(cfg.deviceName)}&since=${remoteCursor}`
-        const result = await hubFetch(`/v1/poll${query}`)
-        remoteLastPollAt = Date.now()
-        remoteLastError = null
-        let advanced = false
-        for (const message of Array.isArray(result.messages) ? result.messages : []) {
-          if (!Number.isSafeInteger(message?.id) || message.id <= remoteCursor) continue
-          remoteCursor = message.id
-          advanced = true
-          try {
-            await handleRemoteMessage(message)
-          } catch (error) {
-            ctx.logger.warn(`collab-pair: handling relay message ${message.id} failed: ${String(error)}`)
-          }
-        }
-        if (advanced) await saveRemoteCursor()
+        await handleRemoteMessage(message)
+      } catch (error) {
+        ctx.logger.warn(`collab-pair: handling relay message ${message.id} failed: ${String(error)}`)
+      }
+    }
+    if (advanced) await saveRemoteCursor()
+  }
+
+  /** Topic derived from room + token, so the free relay needs no account. */
+  function ntfyTopic() {
+    const digest = createHash('sha256').update(`${cfg.hubRoom}:${cfg.hubToken}`).digest('hex')
+    return `collab-${digest.slice(0, 32)}`
+  }
+
+  /** Publish one envelope through ntfy.sh, chunked under its 4 KB limit. */
+  async function ntfySend(to, type, payload) {
+    const envelope = { room: cfg.hubRoom, from: cfg.deviceName, to, type, payload, at: Date.now() }
+    const encoded = Buffer.from(JSON.stringify(envelope), 'utf8').toString('base64')
+    const id = randomUUID()
+    const size = 2400
+    const total = Math.max(1, Math.ceil(encoded.length / size))
+    for (let part = 1; part <= total; part += 1) {
+      const chunk = JSON.stringify({ v: 1, id, part, of: total, data: encoded.slice((part - 1) * size, part * size) })
+      const body = JSON.stringify({ topic: ntfyTopic(), message: chunk, priority: 3 })
+      const response = await fetch('https://ntfy.sh', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body,
+        signal: AbortSignal.timeout(20000),
+      })
+      if (!response.ok) throw new Error(`ntfy 发布失败：HTTP ${response.status}`)
+    }
+  }
+
+  /** Reassemble a chunked ntfy message and route it. */
+  function ntfyIngest(message) {
+    let chunk
+    try {
+      chunk = JSON.parse(message)
+    } catch {
+      return
+    }
+    if (chunk === null || typeof chunk !== 'object' || chunk.v !== 1 || typeof chunk.id !== 'string' || !Number.isSafeInteger(chunk.part) || !Number.isSafeInteger(chunk.of)) return
+    const entry = ntfyParts.get(chunk.id) ?? { of: chunk.of, parts: new Map() }
+    entry.parts.set(chunk.part, typeof chunk.data === 'string' ? chunk.data : '')
+    ntfyParts.set(chunk.id, entry)
+    if (entry.parts.size < entry.of) return
+    ntfyParts.delete(chunk.id)
+    const joined = []
+    for (let part = 1; part <= entry.of; part += 1) joined.push(entry.parts.get(part) ?? '')
+    let envelope
+    try {
+      envelope = JSON.parse(Buffer.from(joined.join(''), 'base64').toString('utf8'))
+    } catch {
+      return
+    }
+    if (envelope === null || typeof envelope !== 'object') return
+    if (envelope.to !== cfg.deviceName && envelope.to !== '*') return
+    if (envelope.from === cfg.deviceName) return
+    void handleRemoteMessage(envelope).catch((error) => ctx.logger.warn(`collab-pair: handling an ntfy message failed: ${String(error)}`))
+  }
+
+  /** Poll the free ntfy relay once. */
+  async function ntfyPollOnce() {
+    const since = remoteNtfyCursor === '' ? '10m' : remoteNtfyCursor
+    const url = `https://ntfy.sh/${encodeURIComponent(ntfyTopic())}/json?poll=1&since=${encodeURIComponent(since)}`
+    const response = await fetch(url, { signal: AbortSignal.timeout(25000) })
+    if (!response.ok) throw new Error(`ntfy 轮询失败：HTTP ${response.status}`)
+    const text = await response.text()
+    remoteLastPollAt = Date.now()
+    remoteLastError = null
+    let advanced = false
+    for (const line of text.split('\n')) {
+      if (line.trim() === '') continue
+      let event
+      try {
+        event = JSON.parse(line)
+      } catch {
+        continue
+      }
+      if (event?.event !== 'message' || typeof event.message !== 'string') continue
+      if (typeof event.id === 'string') remoteNtfyCursor = event.id
+      advanced = true
+      ntfyIngest(event.message)
+    }
+    if (advanced) await saveRemoteCursor()
+    if (!advanced) await new Promise((resolve) => setTimeout(resolve, 2500))
+  }
+
+  /** Poll the configured relay and dispatch incoming envelopes. */
+  async function remoteLoop() {
+    if (!relayConfigured()) return
+    ctx.logger.info(`collab-pair: ${cfg.relayMode} relay for ${cfg.deviceName} on room ${cfg.hubRoom}`)
+    while (alive && relayConfigured()) {
+      try {
+        if (cfg.relayMode === 'ntfy') await ntfyPollOnce()
+        else await hubPollOnce()
       } catch (error) {
         remoteLastError = String(error instanceof Error ? error.message : error)
         ctx.logger.warn(`collab-pair: relay poll failed: ${remoteLastError}`)
@@ -1422,6 +1567,7 @@ export function apply(ctx, rawConfig) {
         mode: link.mode,
         project: link.project || '',
         remote: link.remote ?? null,
+        stages: link.stages ?? [],
         workerLive: workerAgent !== undefined,
         workerRunning: workerAgent !== undefined && workerAgent.status === 'running',
         managerRunning: managerAgent !== undefined && managerAgent.status === 'running',
@@ -2043,7 +2189,7 @@ export function apply(ctx, rawConfig) {
       },
       async execute(args, exec) {
         const agent = requireAgent(exec)
-        if (!hubConfigured()) throw new CollabError('尚未配置跨设备中继：在插件配置中设置 hubUrl 与 hubToken（可选 hubRoom、deviceName）。')
+        if (!relayConfigured()) throw new CollabError('跨设备中继未启用：请在设置页的「跨设备协作」里选择中继并保存。')
         await remoteReady.catch(() => undefined)
         const action = typeof args?.action === 'string' ? args.action : ''
         if (action === 'alias') {
@@ -2255,6 +2401,7 @@ export function apply(ctx, rawConfig) {
               mode: link.mode,
               project: link.project || null,
               remote: link.remote ?? null,
+              stages: link.stages ?? [],
               round: link.round,
               pending: link.pending === null
                 ? null
@@ -2424,6 +2571,129 @@ export function apply(ctx, rawConfig) {
         return { ok: true, project: name, workers: existing.length }
       },
       when: ({ agent }) => managerLinks(agent.id).length > 0,
+    })
+
+    toolExecutors.stage = register({
+      name: 'collab_stage',
+      description:
+        '（项目经理）阶段队列：人可以先写好多个大阶段的提示词。action=add 添加阶段，list 查看，start 开始第一个待开始阶段，complete 完成当前阶段并自动派发下一阶段，remove 删除待开始阶段。',
+      parameters: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['add', 'list', 'start', 'complete', 'remove', 'clear'], description: '要执行的操作。' },
+          worker: { type: 'string', description: '可选：目标员工（sessionId、标题或别名）。只有一个员工时可省略。' },
+          prompt: { type: 'string', description: 'add：该阶段要派发的提示词/任务。' },
+          acceptance: { type: 'string', description: 'add：该阶段的验收标准。' },
+          title: { type: 'string', description: 'add：阶段标题，便于人查看。' },
+          summary: { type: 'string', description: 'complete：本阶段总结（可选）。' },
+          index: { type: 'number', description: 'remove：要删除的待开始阶段序号（从 1 开始）。' },
+        },
+        required: ['action'],
+      },
+      async execute(args, exec) {
+        const agent = requireAgent(exec)
+        const link = resolveManagedLink(agent.id, args?.worker)
+        const action = typeof args?.action === 'string' ? args.action : ''
+        if (!Array.isArray(link.stages)) link.stages = []
+        const view = () => link.stages.map((stage, index) => ({
+          index: index + 1,
+          id: stage.id,
+          title: stage.title || '',
+          status: stage.status,
+          acceptance: stage.acceptance || '',
+          prompt: clip(stage.prompt, 400),
+        }))
+        if (action === 'add') {
+          const prompt = typeof args?.prompt === 'string' ? args.prompt.trim() : ''
+          if (prompt === '') throw new CollabError('prompt 不能为空。')
+          const stage = {
+            id: `st-${randomUUID().slice(0, 8)}`,
+            title: typeof args?.title === 'string' ? args.title.trim() : '',
+            prompt,
+            acceptance: typeof args?.acceptance === 'string' ? args.acceptance.trim() : '',
+            status: 'pending',
+          }
+          link.stages.push(stage)
+          link.updatedAt = Date.now()
+          await persist(link)
+          return { ok: true, action: 'add', stage: view().find((row) => row.id === stage.id), stages: view() }
+        }
+        if (action === 'list') {
+          return {
+            ok: true,
+            action: 'list',
+            worker: link.worker,
+            stages: view(),
+            active: view().find((row) => row.status === 'active') ?? null,
+          }
+        }
+        if (action === 'remove') {
+          const index = clampInt(args?.index, 1, 100, 0)
+          const stage = index > 0 ? link.stages[index - 1] : undefined
+          if (stage === undefined) throw new CollabError('index 超出范围。')
+          if (stage.status !== 'pending') throw new CollabError('只能删除尚未开始的阶段。')
+          link.stages.splice(index - 1, 1)
+          link.updatedAt = Date.now()
+          await persist(link)
+          return { ok: true, action: 'remove', stages: view() }
+        }
+        if (action === 'clear') {
+          link.stages = link.stages.filter((stage) => stage.status === 'active')
+          link.updatedAt = Date.now()
+          await persist(link)
+          return { ok: true, action: 'clear', stages: view() }
+        }
+        if (action === 'start' || action === 'complete') {
+          if (link.pending !== null) {
+            throw new CollabError(`仍在等待该员工第 ${link.pending.round} 轮回报，等回报后再推进阶段。`)
+          }
+          let next
+          if (action === 'complete') {
+            const active = link.stages.find((stage) => stage.status === 'active')
+            if (active === undefined) throw new CollabError('当前没有进行中的阶段；用 action=start 开始第一个阶段。')
+            active.status = 'done'
+            active.completedAt = Date.now()
+            active.summary = typeof args?.summary === 'string' ? clip(args.summary.trim(), 2000) : ''
+            await persist(link)
+            next = link.stages.find((stage) => stage.status === 'pending')
+            if (next === undefined) {
+              link.updatedAt = Date.now()
+              await persist(link)
+              return { ok: true, action: 'complete', done: true, next: null, stages: view(), message: '当前阶段已完成，队列里没有下一阶段。' }
+            }
+          } else {
+            if (link.stages.some((stage) => stage.status === 'active')) {
+              throw new CollabError('已有进行中的阶段；请先 complete 或等它结束。')
+            }
+            next = link.stages.find((stage) => stage.status === 'pending')
+            if (next === undefined) throw new CollabError('队列里没有待开始的阶段。')
+          }
+          next.status = 'active'
+          next.startedAt = Date.now()
+          delete next.completedAt
+          link.updatedAt = Date.now()
+          await persist(link)
+          try {
+            const receipt = await dispatchRound(link, next.prompt, next.acceptance, exec.signal, false)
+            return {
+              ok: true,
+              action,
+              done: action === 'complete',
+              stage: { id: next.id, title: next.title, index: link.stages.indexOf(next) + 1 },
+              round: receipt.round,
+              stages: view(),
+              message: `已开始阶段「${next.title || next.id}」，第 ${receipt.round} 轮任务已派发。`,
+            }
+          } catch (error) {
+            next.status = 'pending'
+            delete next.startedAt
+            await persist(link)
+            throw error
+          }
+        }
+        throw new CollabError('action 必须是 add | list | start | complete | remove | clear。')
+      },
+      when: ({ agent }) => managerHasWork(agent.id),
     })
 
     toolExecutors.done = register({
@@ -2628,6 +2898,7 @@ export function apply(ctx, rawConfig) {
       dispatch: 'dispatch',
       configure: 'configure',
       project: 'project',
+      stage: 'stage',
       remote: 'remote',
       done: 'done',
       unlink: 'unlink',
@@ -2635,15 +2906,58 @@ export function apply(ctx, rawConfig) {
     }
     ctx.commands.register({
       name: 'collab',
-      description: '双对话协作：查看全部任务、关联员工、设置项目名、配置预设与语言、派发任务、收尾或解除。',
+      description: '双对话协作：查看全部任务、关联员工、阶段队列、跨设备中继、设置项目名、配置预设与语言、派发任务、收尾或解除。',
       input: {
-        hint: 'tasks | status | link --peer <id|new> | create --name <名字> --preset <id> | project --name <项目名> | remote --action link --device <名> --worker <别名> | configure --preset <id> | language <zh|en> | dispatch --worker <id> --task ... | done --worker <id> --summary ... | unlink --worker <id>',
+        hint: 'tasks | status | link --peer <id|new> | create --name <名字> | stage --action add --prompt ... | relay --action set --mode hub|ntfy | remote --action link --device <名> --worker <别名> | project --name <项目名> | dispatch --worker <id> --task ... | done --worker <id> --summary ...',
       },
       handler: async (invocation) => {
         try {
           const { action, args } = parseCommandBody(invocation.rawInput)
           if (action === 'tasks' || action === 'board') {
             return { kind: 'success', text: JSON.stringify(await tasksBoard()) }
+          }
+          if (action === 'relay') {
+            const sub = typeof args?.action === 'string' ? args.action : 'get'
+            if (sub === 'get') return { kind: 'success', text: JSON.stringify(relayStatus()) }
+            if (sub === 'test') {
+              if (!relayConfigured()) return { kind: 'error', text: '中继未启用：先选择模式并保存。' }
+              try {
+                if (cfg.relayMode === 'hub') {
+                  await hubFetch(`/v1/head?room=${encodeURIComponent(cfg.hubRoom)}`)
+                } else {
+                  const response = await fetch(`https://ntfy.sh/${encodeURIComponent(ntfyTopic())}/json?poll=1&since=10m`, { signal: AbortSignal.timeout(15000) })
+                  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+                  await response.text()
+                }
+                return { kind: 'success', text: JSON.stringify({ ok: true, mode: cfg.relayMode, device: cfg.deviceName, room: cfg.hubRoom }) }
+              } catch (error) {
+                return { kind: 'error', text: `连接测试失败：${error instanceof Error ? error.message : String(error)}` }
+              }
+            }
+            if (sub === 'set') {
+              const mode = args?.mode === 'hub' || args?.mode === 'ntfy' || args?.mode === 'off' ? args.mode : ''
+              if (mode === '') return { kind: 'error', text: 'mode 必须是 hub / ntfy / off。' }
+              const hubUrl = normalizeHubUrl(args?.hubUrl)
+              const room = typeof args?.hubRoom === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(args.hubRoom) ? args.hubRoom : 'default'
+              const providedToken = typeof args?.hubToken === 'string' ? args.hubToken.trim() : ''
+              const token = providedToken === '' && args?.keepToken === true ? cfg.hubToken : providedToken
+              const device = deviceText(args?.deviceName)
+              if (mode === 'hub' && (hubUrl === '' || token === '')) return { kind: 'error', text: '自建 hub 需要 hubUrl 和 token。' }
+              if (mode === 'ntfy' && (token.length < 16 || room === 'default')) return { kind: 'error', text: '免费中继需要至少 16 位的 token，以及一个非 default 的房间名。' }
+              const entry = ctx.fiber?.entry
+              const editor = ctx.get('configEditor')
+              if (entry === undefined || editor === undefined) return { kind: 'error', text: '当前环境无法保存中继设置。' }
+              await editor.edit(entry, (current) => ({
+                ...current,
+                relayMode: mode,
+                hubUrl,
+                hubRoom: room,
+                hubToken: token,
+                deviceName: device,
+              }))
+              return { kind: 'success', text: JSON.stringify({ ok: true, mode, reload: true }) }
+            }
+            return { kind: 'error', text: 'action 必须是 get / set / test。' }
           }
           if (action === 'language') {
             const next = typeof args?.language === 'string' ? args.language : typeof args?.value === 'string' ? args.value : ''

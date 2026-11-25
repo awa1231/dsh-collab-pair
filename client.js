@@ -69,6 +69,77 @@ window.__ModuleLoader__.load({
         minutes: '{count} 分钟',
         hours: '{count} 小时',
         unknownError: '操作失败',
+        relayTitle: '跨设备协作',
+        relayIntro: '把员工对话搬到另一台设备：ntfy.sh 免费、免部署，但消息经过公共服务器，token 只用于派生私有 topic；自建 hub 更私密。两台设备需要填同一个令牌。',
+        relayModeLabel: '中继模式',
+        relayOff: '关闭',
+        relayHub: '自建 hub',
+        relayNtfy: '免费公共中继 ntfy.sh',
+        relayOffHint: '关闭后不再轮询中继，令牌会保留，切回时无需重填。',
+        relayHubUrl: 'Hub 地址',
+        relayRoom: '房间',
+        relayToken: '令牌',
+        relayTokenKeep: '留空保留已保存的令牌',
+        relayDevice: '设备名',
+        relayDeviceHint: '设备名由字母、数字、下划线或连字符组成，两台设备各用一个。',
+        relayTokenHint: '令牌不会被回显；有已保存的令牌时，留空即沿用。',
+        relaySave: '保存中继设置',
+        relayTest: '测试连接',
+        relayTestHint: '连接测试使用已保存的设置。',
+        relaySaved: '中继设置已保存。',
+        relaySavedPending: '已保存，插件正在重新加载；稍后点「刷新」查看状态。',
+        relayNotSaved: '中继设置未保存。',
+        relayTestOk: '连接测试通过。',
+        relayStatusTitle: '中继状态',
+        relayConnected: '已连接',
+        relayDisconnected: '未连接',
+        relayLastPoll: '最近轮询',
+        relayNever: '从未',
+        relayLastError: '最近错误',
+        relayStatusLine: '设备 {device} · 房间 {room}',
+        relayMissingHubUrl: '请填写 Hub 地址。',
+        relayMissingToken: '请填写令牌。',
+        relayMissingRoom: '请填写房间名。',
+        aliasTitle: '本机别名',
+        aliasHint: '在员工设备上把当前对话注册为别名，经理在另一台设备用「关联远端员工」把它接进来。',
+        aliasPlaceholder: '如 worker-a',
+        aliasRegister: '把当前对话注册为员工',
+        aliasDone: '别名已注册。',
+        aliasRemoved: '别名已删除。',
+        aliasRemove: '删除',
+        aliasEmpty: '本机还没有别名。',
+        aliasOff: '启用中继后才能注册别名。',
+        remoteTitle: '关联远端员工',
+        remoteDevice: '远端设备',
+        remoteWorker: '远端别名',
+        remoteName: '显示名',
+        remoteLink: '关联远端员工',
+        remoteMissing: '请填写远端设备和别名。',
+        remoteLinkDone: '已关联远端员工，接着给它派发任务。',
+        stageTitle: '阶段队列',
+        stageIntro: '先写好几个大阶段，完成一个会自动派发下一个。',
+        stageEmpty: '还没有阶段。先添加几个大阶段，完成一个会自动派发下一个。',
+        stageWorker: '员工',
+        stageNoWorker: '还没有可用的员工，先关联一个。',
+        stageAddTitle: '阶段标题',
+        stagePrompt: '提示词',
+        stageAcceptance: '验收标准',
+        stageAdd: '添加到阶段队列',
+        stageAdded: '阶段已添加。',
+        stageStarted: '阶段已开始。',
+        stageFinished: '阶段已完成。',
+        stageRemoved: '阶段已删除。',
+        stageUntitled: '未命名阶段',
+        stagePromptEmpty: '（无提示词）',
+        stageStatusPending: '待开始',
+        stageStatusActive: '进行中',
+        stageStatusDone: '已完成',
+        stageStart: '开始',
+        stageComplete: '完成并发下一阶段',
+        stageRemove: '删除',
+        menuSetManager: '设为项目经理（新建员工）',
+        menuWorkerName: '新员工名字',
+        menuFailed: '创建员工失败',
       },
       en: {
         nav: 'Collaboration pair',
@@ -133,6 +204,77 @@ window.__ModuleLoader__.load({
         minutes: '{count}m',
         hours: '{count}h',
         unknownError: 'The operation failed',
+        relayTitle: 'Cross-device relay',
+        relayIntro: 'Move a worker conversation to another machine. ntfy.sh is free and needs no deployment, but messages pass through a public server and the token only derives a private topic; a self-hosted hub is more private. Both devices use the same token.',
+        relayModeLabel: 'Relay mode',
+        relayOff: 'Off',
+        relayHub: 'Self-hosted hub',
+        relayNtfy: 'Free public relay ntfy.sh',
+        relayOffHint: 'Turning it off stops polling and keeps the token for next time.',
+        relayHubUrl: 'Hub URL',
+        relayRoom: 'Room',
+        relayToken: 'Token',
+        relayTokenKeep: 'Leave blank to keep the saved token',
+        relayDevice: 'Device name',
+        relayDeviceHint: 'A device name uses letters, digits, underscore or hyphen; one per machine.',
+        relayTokenHint: 'The token is never echoed back; leave it blank to reuse a saved one.',
+        relaySave: 'Save relay settings',
+        relayTest: 'Test connection',
+        relayTestHint: 'The test uses the saved settings.',
+        relaySaved: 'Relay settings saved.',
+        relaySavedPending: 'Saved; the plugin is reloading. Refresh in a moment to see the state.',
+        relayNotSaved: 'Relay settings were not saved.',
+        relayTestOk: 'Connection test passed.',
+        relayStatusTitle: 'Relay status',
+        relayConnected: 'Connected',
+        relayDisconnected: 'Not connected',
+        relayLastPoll: 'Last poll',
+        relayNever: 'never',
+        relayLastError: 'Last error',
+        relayStatusLine: 'Device {device} · room {room}',
+        relayMissingHubUrl: 'Enter the hub URL.',
+        relayMissingToken: 'Enter the token.',
+        relayMissingRoom: 'Enter a room name.',
+        aliasTitle: 'Local aliases',
+        aliasHint: 'Register this conversation as an alias on the worker device; the manager links it from the other machine.',
+        aliasPlaceholder: 'e.g. worker-a',
+        aliasRegister: 'Register this conversation as a worker',
+        aliasDone: 'Alias registered.',
+        aliasRemoved: 'Alias removed.',
+        aliasRemove: 'Remove',
+        aliasEmpty: 'No alias on this device yet.',
+        aliasOff: 'Enable the relay before registering an alias.',
+        remoteTitle: 'Link a remote worker',
+        remoteDevice: 'Remote device',
+        remoteWorker: 'Remote alias',
+        remoteName: 'Display name',
+        remoteLink: 'Link remote worker',
+        remoteMissing: 'Enter the remote device and alias.',
+        remoteLinkDone: 'Remote worker linked; dispatch a task next.',
+        stageTitle: 'Stage queue',
+        stageIntro: 'Write a few large stages up front; completing one dispatches the next automatically.',
+        stageEmpty: 'No stage yet. Add a few large stages; completing one dispatches the next automatically.',
+        stageWorker: 'Worker',
+        stageNoWorker: 'No worker available; link one first.',
+        stageAddTitle: 'Stage title',
+        stagePrompt: 'Prompt',
+        stageAcceptance: 'Acceptance',
+        stageAdd: 'Add to stage queue',
+        stageAdded: 'Stage added.',
+        stageStarted: 'Stage started.',
+        stageFinished: 'Stage finished.',
+        stageRemoved: 'Stage removed.',
+        stageUntitled: 'Untitled stage',
+        stagePromptEmpty: '(no prompt)',
+        stageStatusPending: 'Pending',
+        stageStatusActive: 'Active',
+        stageStatusDone: 'Done',
+        stageStart: 'Start',
+        stageComplete: 'Complete and dispatch next',
+        stageRemove: 'Remove',
+        menuSetManager: 'Set as project manager (new worker)',
+        menuWorkerName: 'New worker name',
+        menuFailed: 'Could not create the worker',
       },
     }
 
@@ -223,6 +365,24 @@ window.__ModuleLoader__.load({
       const [peer, setPeer] = React.useState('new')
       const [mode, setMode] = React.useState('temporary')
       const [projectDraft, setProjectDraft] = React.useState('')
+      const [relayMode, setRelayMode] = React.useState('off')
+      const [relayHubUrl, setRelayHubUrl] = React.useState('')
+      const [relayRoom, setRelayRoom] = React.useState('')
+      const [relayToken, setRelayToken] = React.useState('')
+      const [relayDevice, setRelayDevice] = React.useState('')
+      const [relayState, setRelayState] = React.useState(null)
+      const [relayMessage, setRelayMessage] = React.useState(null)
+      const [relayError, setRelayError] = React.useState(null)
+      const [relayBusy, setRelayBusy] = React.useState(false)
+      const [aliases, setAliases] = React.useState([])
+      const [aliasDraft, setAliasDraft] = React.useState('')
+      const [remoteDevice, setRemoteDevice] = React.useState('')
+      const [remoteWorker, setRemoteWorker] = React.useState('')
+      const [remoteName, setRemoteName] = React.useState('')
+      const [stageWorker, setStageWorker] = React.useState('')
+      const [stageTitle, setStageTitle] = React.useState('')
+      const [stagePrompt, setStagePrompt] = React.useState('')
+      const [stageAcceptance, setStageAcceptance] = React.useState('')
       const commandsRef = React.useRef(commands)
       commandsRef.current = commands
 
@@ -263,6 +423,30 @@ window.__ModuleLoader__.load({
         }
       }, [workId, loadBoard])
 
+      React.useEffect(() => {
+        if (workId === undefined) return undefined
+        let cancelled = false
+        const load = async () => {
+          try {
+            const value = await runCommand(commandsRef.current, workId, '/collab relay {"action":"get"}')
+            if (cancelled) return
+            applyRelayState(value)
+            if (value === null || typeof value !== 'object' || value.mode === 'off') {
+              setAliases([])
+              return
+            }
+            const list = await runCommand(commandsRef.current, workId, '/collab remote {"action":"aliases"}')
+            if (!cancelled && list !== null && typeof list === 'object' && Array.isArray(list.aliases)) setAliases(list.aliases)
+          } catch {
+            // The relay state is optional for this page; keep whatever the person is typing.
+          }
+        }
+        void load()
+        return () => {
+          cancelled = true
+        }
+      }, [workId])
+
       const act = async (line, successText) => {
         if (workId === undefined) return
         setBusy(true)
@@ -285,6 +469,8 @@ window.__ModuleLoader__.load({
         setError(null)
         try {
           await loadBoard(workId)
+          const relay = await readRelay(workId).catch(() => null)
+          if (relay !== null && relay.mode !== 'off') await loadAliases(workId).catch(() => undefined)
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : String(cause))
         } finally {
@@ -335,6 +521,178 @@ window.__ModuleLoader__.load({
         void act(`/collab project ${JSON.stringify({ name })}`, t('projectSaved')).then(() => setProjectDraft(''))
       }
 
+      const applyRelayState = (value) => {
+        if (value === null || typeof value !== 'object') return
+        setRelayState(value)
+        setRelayMode(value.mode === 'hub' || value.mode === 'ntfy' ? value.mode : 'off')
+        setRelayHubUrl(typeof value.hubUrl === 'string' ? value.hubUrl : '')
+        setRelayRoom(typeof value.room === 'string' ? value.room : '')
+        setRelayDevice(typeof value.device === 'string' ? value.device : '')
+      }
+
+      const readRelay = async (sessionId) => {
+        const value = await runCommand(commandsRef.current, sessionId, '/collab relay {"action":"get"}')
+        applyRelayState(value)
+        return value
+      }
+
+      const loadAliases = async (sessionId) => {
+        const value = await runCommand(commandsRef.current, sessionId, '/collab remote {"action":"aliases"}')
+        setAliases(value !== null && typeof value === 'object' && Array.isArray(value.aliases) ? value.aliases : [])
+        return value
+      }
+
+      /** Run one command, show the dictionary text, then refresh the board. */
+      const runAction = async (line, successText) => {
+        if (workId === undefined) return
+        setBusy(true)
+        setError(null)
+        setNotice(null)
+        try {
+          await runCommand(commandsRef.current, workId, line)
+          setNotice(successText)
+          await loadBoard(workId)
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : String(cause))
+        } finally {
+          setBusy(false)
+        }
+      }
+
+      const saveRelay = async () => {
+        if (workId === undefined) return
+        const mode = relayMode
+        const token = relayToken.trim()
+        // The Host keeps the stored token when hubToken is empty and keepToken is set.
+        const keepToken = token === '' && relayState !== null && relayState.hasToken === true
+        if (mode === 'hub' && relayHubUrl.trim() === '') {
+          setRelayError(t('relayMissingHubUrl'))
+          return
+        }
+        if (mode !== 'off' && token === '' && !keepToken) {
+          setRelayError(t('relayMissingToken'))
+          return
+        }
+        if (mode === 'ntfy' && relayRoom.trim() === '') {
+          setRelayError(t('relayMissingRoom'))
+          return
+        }
+        setRelayBusy(true)
+        setRelayError(null)
+        setRelayMessage(null)
+        const payload = {
+          action: 'set',
+          mode,
+          hubUrl: relayHubUrl.trim(),
+          hubRoom: relayRoom.trim(),
+          hubToken: token,
+          ...(keepToken ? { keepToken: true } : {}),
+          deviceName: relayDevice.trim(),
+        }
+        let failure = null
+        try {
+          await runCommand(commandsRef.current, workId, `/collab relay ${JSON.stringify(payload)}`)
+        } catch (cause) {
+          // Saving a setting restarts the Host plugin, so this call may be interrupted.
+          failure = cause instanceof Error ? cause.message : String(cause)
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        try {
+          const value = await readRelay(workId)
+          if (value !== null && typeof value === 'object' && value.mode === mode) {
+            setRelayMessage(t('relaySaved'))
+            if (mode === 'off') setAliases([])
+            else await loadAliases(workId).catch(() => undefined)
+            await loadBoard(workId).catch(() => undefined)
+          } else {
+            setRelayError(failure === null ? t('relayNotSaved') : failure)
+          }
+        } catch {
+          // The page may still be reconnecting after the reload.
+          if (failure === null) setRelayMessage(t('relaySavedPending'))
+          else setRelayError(failure)
+        } finally {
+          setRelayBusy(false)
+        }
+      }
+
+      const testRelay = async () => {
+        if (workId === undefined) return
+        setRelayBusy(true)
+        setRelayError(null)
+        setRelayMessage(null)
+        try {
+          const value = await runCommand(commandsRef.current, workId, '/collab relay {"action":"test"}')
+          const text = value !== null && typeof value === 'object' && typeof value.message === 'string' ? value.message : ''
+          setRelayMessage(text === '' ? t('relayTestOk') : text)
+          await readRelay(workId).catch(() => undefined)
+        } catch (cause) {
+          setRelayError(cause instanceof Error ? cause.message : String(cause))
+        } finally {
+          setRelayBusy(false)
+        }
+      }
+
+      const registerAlias = async () => {
+        if (workId === undefined) return
+        const alias = aliasDraft.trim()
+        if (alias === '') return
+        setRelayBusy(true)
+        setRelayError(null)
+        setRelayMessage(null)
+        try {
+          await runCommand(commandsRef.current, workId, `/collab remote ${JSON.stringify({ action: 'alias', alias })}`)
+          setRelayMessage(t('aliasDone'))
+          setAliasDraft('')
+          await loadAliases(workId).catch(() => undefined)
+        } catch (cause) {
+          setRelayError(cause instanceof Error ? cause.message : String(cause))
+        } finally {
+          setRelayBusy(false)
+        }
+      }
+
+      const removeAlias = async (alias) => {
+        if (workId === undefined) return
+        setRelayBusy(true)
+        setRelayError(null)
+        setRelayMessage(null)
+        try {
+          await runCommand(commandsRef.current, workId, `/collab remote ${JSON.stringify({ action: 'remove-alias', alias })}`)
+          setRelayMessage(t('aliasRemoved'))
+          await loadAliases(workId).catch(() => undefined)
+        } catch (cause) {
+          setRelayError(cause instanceof Error ? cause.message : String(cause))
+        } finally {
+          setRelayBusy(false)
+        }
+      }
+
+      const linkRemote = async () => {
+        if (workId === undefined) return
+        const device = remoteDevice.trim()
+        const worker = remoteWorker.trim()
+        if (device === '' || worker === '') {
+          setRelayError(t('remoteMissing'))
+          return
+        }
+        setRelayBusy(true)
+        setRelayError(null)
+        setRelayMessage(null)
+        try {
+          await runCommand(commandsRef.current, workId, `/collab remote ${JSON.stringify({ action: 'link', device, worker, name: remoteName.trim() })}`)
+          setRelayMessage(t('remoteLinkDone'))
+          setRemoteDevice('')
+          setRemoteWorker('')
+          setRemoteName('')
+          await loadBoard(workId).catch(() => undefined)
+        } catch (cause) {
+          setRelayError(cause instanceof Error ? cause.message : String(cause))
+        } finally {
+          setRelayBusy(false)
+        }
+      }
+
       const links = board !== null && Array.isArray(board.links) ? board.links : []
       const messageLang = board !== null && board.language === 'en' ? 'en' : 'zh'
       const associated = links.filter((link) => link.status === 'active' || link.mode === 'permanent')
@@ -344,6 +702,38 @@ window.__ModuleLoader__.load({
       const role = managed.length > 0 ? 'manager' : mine === undefined ? null : 'worker'
       const managerProject = managed.find((link) => typeof link.project === 'string' && link.project !== '')?.project ?? ''
       const peerChoices = sessions.filter((row) => row.id !== workId)
+
+      /** What the stage queue can pass as the worker parameter for one board link. */
+      const stageRef = (link) => (typeof link.linkId === 'string' && link.linkId !== '' ? link.linkId : link.worker)
+      const managedKey = managed.map((link) => stageRef(link)).join('|')
+      React.useEffect(() => {
+        if (managed.length === 0) return
+        if (managed.some((link) => stageRef(link) === stageWorker)) return
+        setStageWorker(stageRef(managed[0]))
+      }, [managedKey, stageWorker])
+
+      const stageLink = managed.find((link) => stageRef(link) === stageWorker) ?? (managed.length === 0 ? undefined : managed[0])
+      const stageList = stageLink !== undefined && Array.isArray(stageLink.stages) ? stageLink.stages : []
+      const stageStatusOf = (value) => {
+        if (value === 'active') return { label: t('stageStatusActive'), color: 'var(--dsw-alias-state-success-primary)' }
+        if (value === 'done') return { label: t('stageStatusDone'), color: 'var(--dsw-alias-label-secondary)' }
+        return { label: t('stageStatusPending'), color: 'var(--dsw-alias-state-warn-primary)' }
+      }
+      const runStage = (payload) => {
+        if (workId === undefined || stageLink === undefined) return
+        const line = `/collab stage ${JSON.stringify({ ...payload, worker: stageRef(stageLink) })}`
+        void runAction(line, payload.action === 'remove' ? t('stageRemoved') : payload.action === 'complete' ? t('stageFinished') : t('stageStarted'))
+      }
+      const addStage = () => {
+        if (workId === undefined || stageLink === undefined) return
+        const prompt = stagePrompt.trim()
+        if (prompt === '') return
+        const line = `/collab stage ${JSON.stringify({ action: 'add', worker: stageRef(stageLink), title: stageTitle.trim(), prompt, acceptance: stageAcceptance.trim() })}`
+        setStageTitle('')
+        setStagePrompt('')
+        setStageAcceptance('')
+        void runAction(line, t('stageAdded'))
+      }
 
       const statusText = (value) => {
         if (value === 'done') return t('statusDone')
@@ -437,6 +827,257 @@ window.__ModuleLoader__.load({
           stateBadge(state),
         )
       }
+
+      const relayModeText = (value) => (value === 'hub' ? t('relayHub') : value === 'ntfy' ? t('relayNtfy') : t('relayOff'))
+      const relayTimeText = (value) => {
+        if (typeof value !== 'string' || value === '') return t('relayNever')
+        const time = new Date(value)
+        return Number.isNaN(time.getTime()) ? value : time.toLocaleTimeString()
+      }
+      const relayReady = relayState !== null && typeof relayState === 'object' && relayState.mode !== 'off'
+      const relayField = (value) => (busy || relayBusy || workId === undefined)
+
+      const relayStatusView = h('div', { style: { display: 'flex', flexDirection: 'column', gap: 4 } },
+        h('div', { style: S.muted }, t('relayStatusTitle')),
+        relayState === null
+          ? h('div', { style: S.muted }, t('loading'))
+          : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 4 } },
+            h('div', { style: S.row },
+              h('span', { style: S.badge }, relayModeText(relayState.mode)),
+              h('span', { style: { ...S.badge, color: relayState.connected === true ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-label-secondary)' } }, relayState.connected === true ? t('relayConnected') : t('relayDisconnected')),
+            ),
+            h('div', { style: S.muted }, t('relayStatusLine', {
+              device: typeof relayState.device === 'string' && relayState.device !== '' ? relayState.device : '-',
+              room: typeof relayState.room === 'string' && relayState.room !== '' ? relayState.room : '-',
+            })),
+            h('div', { style: S.muted }, `${t('relayLastPoll')}：${relayTimeText(relayState.lastPollAt)}`),
+            typeof relayState.lastError === 'string' && relayState.lastError !== ''
+              ? h('div', { style: { ...S.muted, color: 'var(--dsw-alias-state-warn-primary)' } }, `${t('relayLastError')}：${relayState.lastError}`)
+              : null,
+          ),
+      )
+
+      const relayCard = h('div', { style: S.card },
+        h('h3', { style: S.cardTitle }, t('relayTitle')),
+        h('p', { style: S.hint }, t('relayIntro')),
+        h('label', { style: S.label }, t('relayModeLabel'),
+          h('select', {
+            style: S.input,
+            value: relayMode,
+            disabled: relayField(),
+            onChange: (event) => setRelayMode(event.target.value),
+          },
+          h('option', { value: 'off' }, t('relayOff')),
+          h('option', { value: 'hub' }, t('relayHub')),
+          h('option', { value: 'ntfy' }, t('relayNtfy'))),
+        ),
+        relayMode === 'off' ? h('div', { style: S.hint }, t('relayOffHint')) : null,
+        relayMode === 'hub'
+          ? h('label', { style: S.label }, t('relayHubUrl'),
+            h('input', {
+              style: S.input,
+              value: relayHubUrl,
+              placeholder: 'https://hub.example.com',
+              disabled: relayField(),
+              onChange: (event) => setRelayHubUrl(event.target.value),
+            }))
+          : null,
+        relayMode === 'off'
+          ? null
+          : h('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap' } },
+            h('label', { style: { ...S.label, flex: 1, minWidth: 160 } }, t('relayRoom'),
+              h('input', {
+                style: S.input,
+                value: relayRoom,
+                placeholder: 'default',
+                disabled: relayField(),
+                onChange: (event) => setRelayRoom(event.target.value),
+              })),
+            h('label', { style: { ...S.label, flex: 1, minWidth: 160 } }, t('relayToken'),
+              h('input', {
+                type: 'password',
+                style: S.input,
+                value: relayToken,
+                placeholder: relayState !== null && relayState.hasToken === true && relayToken === '' ? t('relayTokenKeep') : '',
+                disabled: relayField(),
+                onChange: (event) => setRelayToken(event.target.value),
+              })),
+          ),
+        h('label', { style: S.label }, t('relayDevice'),
+          h('input', {
+            style: S.input,
+            value: relayDevice,
+            disabled: relayField(),
+            onChange: (event) => setRelayDevice(event.target.value),
+          })),
+        h('div', { style: S.hint }, t('relayDeviceHint')),
+        relayMode === 'off' ? null : h('div', { style: S.hint }, t('relayTokenHint')),
+        h('div', { style: S.row },
+          h('button', { type: 'button', style: S.primary, disabled: relayField(), onClick: () => void saveRelay() }, t('relaySave')),
+          h('button', { type: 'button', style: S.secondary, disabled: relayField() || !relayReady, onClick: () => void testRelay() }, t('relayTest')),
+          relayBusy ? h('span', { style: S.muted }, t('busy')) : null,
+        ),
+        h('div', { style: S.hint }, t('relayTestHint')),
+        relayStatusView,
+        relayError !== null ? h('p', { style: { ...S.notice, color: 'var(--dsw-alias-state-error-primary)' } }, relayError) : null,
+        relayMessage !== null ? h('p', { style: { ...S.notice, color: 'var(--dsw-alias-state-success-primary)' } }, relayMessage) : null,
+        h('hr', { style: { border: 0, borderTop: '1px solid var(--dsw-alias-border-l1)', margin: '2px 0' } }),
+        h('h4', { style: S.cardTitle }, t('aliasTitle')),
+        h('p', { style: S.hint }, t('aliasHint')),
+        relayReady ? null : h('p', { style: S.hint }, t('aliasOff')),
+        h('div', { style: S.row },
+          h('input', {
+            style: { ...S.input, flex: 1, minWidth: 160 },
+            value: aliasDraft,
+            placeholder: t('aliasPlaceholder'),
+            disabled: relayField() || !relayReady,
+            onChange: (event) => setAliasDraft(event.target.value),
+          }),
+          h('button', {
+            type: 'button',
+            style: S.secondary,
+            disabled: relayField() || !relayReady || aliasDraft.trim() === '',
+            onClick: () => void registerAlias(),
+          }, t('aliasRegister')),
+        ),
+        aliases.length === 0
+          ? h('p', { style: S.hint }, t('aliasEmpty'))
+          : aliases.map((record) => h('div', { key: String(record.alias), style: S.worker },
+            h('div', { style: S.workerMain },
+              h('div', { style: S.workerName }, record.alias),
+              h('div', { style: S.mono }, record.session),
+            ),
+            h('button', {
+              type: 'button',
+              style: S.danger,
+              disabled: relayField(),
+              onClick: () => void removeAlias(record.alias),
+            }, t('aliasRemove')),
+          )),
+        role === 'worker'
+          ? null
+          : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+            h('h4', { style: S.cardTitle }, t('remoteTitle')),
+            h('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap' } },
+              h('label', { style: { ...S.label, flex: 1, minWidth: 120 } }, t('remoteDevice'),
+                h('input', {
+                  style: S.input,
+                  value: remoteDevice,
+                  disabled: relayField() || !relayReady,
+                  onChange: (event) => setRemoteDevice(event.target.value),
+                })),
+              h('label', { style: { ...S.label, flex: 1, minWidth: 120 } }, t('remoteWorker'),
+                h('input', {
+                  style: S.input,
+                  value: remoteWorker,
+                  disabled: relayField() || !relayReady,
+                  onChange: (event) => setRemoteWorker(event.target.value),
+                })),
+              h('label', { style: { ...S.label, flex: 1, minWidth: 120 } }, t('remoteName'),
+                h('input', {
+                  style: S.input,
+                  value: remoteName,
+                  disabled: relayField() || !relayReady,
+                  onChange: (event) => setRemoteName(event.target.value),
+                })),
+            ),
+            h('div', { style: S.row },
+              h('button', {
+                type: 'button',
+                style: S.primary,
+                disabled: relayField() || !relayReady || remoteDevice.trim() === '' || remoteWorker.trim() === '',
+                onClick: () => void linkRemote(),
+              }, t('remoteLink')),
+            ),
+          ),
+      )
+
+      const stageRow = (stage, index) => {
+        const status = stageStatusOf(stage.status)
+        return h('div', { key: typeof stage.id === 'string' ? stage.id : String(index), style: S.taskRow },
+          h('div', { style: S.taskMain },
+            h('div', { style: S.taskTitle }, `${index + 1}. ${typeof stage.title === 'string' && stage.title !== '' ? stage.title : t('stageUntitled')}`),
+            h('p', { style: S.taskText }, typeof stage.prompt === 'string' && stage.prompt !== '' ? stage.prompt : t('stagePromptEmpty')),
+            stage.status === 'done' && typeof stage.summary === 'string' && stage.summary !== ''
+              ? h('div', { style: S.muted }, stage.summary)
+              : null,
+          ),
+          h('div', { style: S.row },
+            h('span', { style: { ...S.badge, color: status.color } }, status.label),
+            stage.status === 'pending'
+              ? h('button', { type: 'button', style: S.secondary, disabled: busy, onClick: () => void runStage({ action: 'start' }) }, t('stageStart'))
+              : null,
+            stage.status === 'pending'
+              ? h('button', { type: 'button', style: S.danger, disabled: busy, onClick: () => void runStage({ action: 'remove', index: index + 1 }) }, t('stageRemove'))
+              : null,
+            stage.status === 'active'
+              ? h('button', { type: 'button', style: S.primary, disabled: busy, onClick: () => void runStage({ action: 'complete' }) }, t('stageComplete'))
+              : null,
+          ),
+        )
+      }
+
+      const stageCard = role !== 'manager'
+        ? null
+        : h('div', { style: S.card },
+          h('div', { style: S.cardHead },
+            h('h3', { style: S.cardTitle }, t('stageTitle')),
+            h('span', { style: S.muted }, t('stageIntro')),
+          ),
+          managed.length === 0
+            ? h('p', { style: S.intro }, t('stageNoWorker'))
+            : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
+              h('label', { style: S.label }, t('stageWorker'),
+                h('select', {
+                  style: S.input,
+                  value: stageLink === undefined ? '' : stageRef(stageLink),
+                  disabled: busy,
+                  onChange: (event) => {
+                    setStageWorker(event.target.value)
+                    setStageTitle('')
+                    setStagePrompt('')
+                    setStageAcceptance('')
+                  },
+                },
+                managed.map((link) => h('option', { key: stageRef(link), value: stageRef(link) },
+                  link.remote !== null && link.remote !== undefined
+                    ? `${link.workerTitle || link.worker} · ${t('remoteLabel')}`
+                    : link.workerTitle || link.worker))),
+              ),
+              h('label', { style: S.label }, t('stageAddTitle'),
+                h('input', {
+                  style: S.input,
+                  value: stageTitle,
+                  disabled: busy,
+                  onChange: (event) => setStageTitle(event.target.value),
+                })),
+              h('label', { style: S.label }, t('stagePrompt'),
+                h('textarea', {
+                  style: { ...S.input, minHeight: 88, resize: 'vertical' },
+                  value: stagePrompt,
+                  disabled: busy,
+                  onChange: (event) => setStagePrompt(event.target.value),
+                })),
+              h('label', { style: S.label }, t('stageAcceptance'),
+                h('textarea', {
+                  style: { ...S.input, minHeight: 56, resize: 'vertical' },
+                  value: stageAcceptance,
+                  disabled: busy,
+                  onChange: (event) => setStageAcceptance(event.target.value),
+                })),
+              h('div', { style: S.row },
+                h('button', {
+                  type: 'button',
+                  style: S.primary,
+                  disabled: busy || stagePrompt.trim() === '',
+                  onClick: () => void addStage(),
+                }, t('stageAdd')),
+              ),
+              stageList.length === 0
+                ? h('p', { style: S.intro }, t('stageEmpty'))
+                : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } }, stageList.map(stageRow)),
+            ),
+        )
 
       const groups = []
       const groupMap = new Map()
@@ -587,6 +1228,8 @@ window.__ModuleLoader__.load({
         feedback,
         h('h3', { style: S.cardTitle }, workTitle === undefined ? t('currentTitle') : `${t('currentTitle')} · ${workTitle}`),
         currentCard,
+        relayCard,
+        stageCard,
         boardCard,
         starRow,
       )
@@ -600,6 +1243,79 @@ window.__ModuleLoader__.load({
         ctx.effect(() => locale.register(NS, MESSAGES), 'collab-pair: locale dictionaries')
       }
       const t = locale !== undefined && typeof locale.bind === 'function' ? locale.bind(NS) : (key) => key
+      const boundT = locale !== undefined && typeof locale.bind === 'function' ? locale.bind(NS) : (key) => key
+      const commands = ctx.remote !== undefined && ctx.remote !== null ? ctx.remote.commands : undefined
+
+      /** Session context menu: make this conversation a manager with one fresh worker. */
+      function SetManagerItem(props) {
+        const [busy, setBusy] = React.useState(false)
+        const menu = typeof props.useMenuOpenState === 'function' ? props.useMenuOpenState() : undefined
+        /** Close the menu through whatever handle the owner hands us; older menus pass none. */
+        const closeMenu = () => {
+          if (typeof menu === 'function') {
+            menu()
+            return
+          }
+          if (Array.isArray(menu) && typeof menu[1] === 'function') {
+            menu[1](false)
+            return
+          }
+          if (menu === undefined || menu === null) return
+          if (typeof menu.close === 'function') {
+            menu.close()
+            return
+          }
+          if (typeof menu.setOpen === 'function') menu.setOpen(false)
+        }
+        const setManager = async () => {
+          if (busy) return
+          closeMenu()
+          const sessionId = typeof props.sessionId === 'string' ? props.sessionId : ''
+          if (sessionId === '') return
+          const answer = typeof window.prompt === 'function' ? window.prompt(boundT('menuWorkerName'), '员工') : null
+          if (answer === null) return
+          const name = typeof answer === 'string' ? answer.trim() : ''
+          setBusy(true)
+          try {
+            await runCommand(commands, sessionId, `/collab create ${JSON.stringify(name === '' ? {} : { name })}`)
+          } catch (cause) {
+            const detail = cause instanceof Error ? cause.message : String(cause)
+            if (typeof window.alert === 'function') window.alert(`${boundT('menuFailed')}\n${detail}`)
+          } finally {
+            setBusy(false)
+          }
+        }
+        return h('button', {
+          type: 'button',
+          role: 'menuitem',
+          disabled: busy,
+          onClick: () => void setManager(),
+          style: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            width: '100%',
+            padding: '6px 10px',
+            border: '1px solid transparent',
+            borderRadius: 6,
+            background: 'transparent',
+            color: 'var(--dsw-alias-label-primary)',
+            fontFamily: 'inherit',
+            fontSize: 13,
+            lineHeight: 1.4,
+            textAlign: 'left',
+            cursor: busy ? 'default' : 'pointer',
+            opacity: busy ? 0.6 : 1,
+          },
+        }, boundT('menuSetManager'))
+      }
+
+      ctx.slots.inject('sidebar.workspaces.session.menu.item', () => ctx.slots.register({
+        name: 'sidebar.workspaces.session.menu.item',
+        id: 'collab-pair-set-manager',
+        order: 20,
+      }, (props) => h(SetManagerItem, { ...props, t: boundT })))
+
       ctx.slots.inject('settings.section', () => ctx.slots.register({
         name: 'settings.section',
         id: 'collab-pair',

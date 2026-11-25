@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.0
+
+- Settings page: **Cross-device** card (off / self-hosted hub / free ntfy.sh) with save, connection test, status, worker aliases and remote worker links.
+- Settings page: **Stage queue** card — pre-write stages, start one, complete it to auto-dispatch the next, remove pending ones.
+- Right-click a conversation → **Set as project manager (new worker)**, which creates and links a worker.
+- Host: free ntfy.sh transport (chunked, room+token topic), `collab_stage`, explicit `relayMode: off` is honored, and `keepToken` on relay saves.
+
 ## 1.3.1
 
 - Added a **Star on GitHub** button at the bottom of the Settings page.
