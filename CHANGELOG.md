@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.3
+
+- Manager mode: right-click **Set as project manager (start)** creates a starter worker and sends the conversation a bootstrap instruction.
+- The manager prompt now tells it to create workers itself, delegate execution, keep its context for review and dispatching, and confirm the goal before the first stage.
+
 ## 1.4.2
 
 - The to-do list (stage queue) card is always visible; when the conversation is not a manager it explains how to make it one.

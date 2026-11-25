@@ -41,7 +41,7 @@ const DONE = 'done'
 const STOPPED = 'stopped'
 const REPORTS = new Set(['done', 'partial', 'blocked'])
 const PROMPT_TIMEOUT_MS = 180000
-const ENGINE = 'collab-pair/1.4.2'
+const ENGINE = 'collab-pair/1.4.3'
 
 /** A recoverable failure whose message is meant for the model. */
 class CollabError extends Error {}
@@ -270,17 +270,17 @@ const LANGUAGES = {
       return [
         '## 双对话协作 · 你是项目经理',
         ...(project ? [`项目：${project}`] : []),
-        `你正在协调 ${count} 个员工对话；项目目标、任务拆解与验收标准由你在对话中掌握。`,
+        `你正在协调 ${count} 个员工对话。默认由你自主创建员工并把执行工作派出去；项目目标、拆解与验收标准由你掌握。`,
         '员工：',
         ...rows,
         '',
         '规则：',
+        '- 默认自主创建员工：需要人干活时，先用 `collab_worker_create` 建立合适的员工（可按角色建多个），再派发；不要等用户手动新建。',
+        '- 不要自己承担员工的具体执行工作。你负责拆解、派发、验收和决定下一步；自己动手只限于规划、审阅和必要协调，避免因长时间执行而错过员工回报。',
         '- 用 `collab_dispatch` 派发任务；有多个员工时用 `worker` 指定员工（sessionId 或标题），只有一个时可省略。',
-        '- 需要新的员工对话时用 `collab_worker_create`（可命名、设预设/模型，并自动关联）。',
         '- 阶段队列：用 `collab_stage` 添加/查看；当前阶段验收通过后调用 `collab_stage({action:"complete"})`，会自动派发下一阶段。',
+        '- 收到【协作回报】后尽快验收并继续派发；保持自己的上下文轻量，细节让员工在回报里给出摘要。',
         '- 需要调整某个员工的 agent 预设或模型时，用 `collab_configure`（worker 指定员工）。',
-        '- 收到以【协作回报】开头的消息后，继续派发，或对该员工调用 `collab_done`；`collab_status` 查看全部进度。',
-        '- 除非用户明确要求，不要自己执行员工的交付任务；你负责拆解、验收和决定下一步。',
         maxRounds > 0 ? `- 每个员工最多 ${maxRounds} 轮。` : '- 不限制轮次，直到你调用 collab_done 收尾。',
       ].join('\n')
     },
@@ -410,17 +410,17 @@ const LANGUAGES = {
       return [
         '## Collaboration pair · You are the project manager',
         ...(project ? [`Project: ${project}`] : []),
-        `You coordinate ${count} worker conversations. You own the project goal, the task breakdown, and the acceptance criteria.`,
+        `You coordinate ${count} worker conversations. By default you create workers yourself and delegate the execution; you own the project goal, breakdown and acceptance criteria.`,
         'Workers:',
         ...rows,
         '',
         'Rules:',
+        '- Create workers by default: when work needs doing, use `collab_worker_create` to make the right worker(s) (multiple roles if needed), then dispatch. Do not wait for the user to create them manually.',
+        '- Do not do the workers\' execution work yourself. You break down, dispatch, review and decide; your own hands-on work should be limited to planning, review and necessary coordination, so a long execution does not make you miss worker reports.',
         '- Dispatch a round with `collab_dispatch`; when several workers exist, select one with `worker` (session id or title). With a single worker you may omit it.',
-        '- To start a new worker conversation use `collab_worker_create` (name, preset/model, linked automatically).',
         '- Stage queue: manage it with `collab_stage`; when the current stage passes acceptance, call `collab_stage({action:"complete"})` to dispatch the next stage automatically.',
+        '- When a [Collaboration report] arrives, review it quickly and dispatch again; keep your own context light and let workers summarise details in their reports.',
         '- To change a worker\'s agent preset or model, use `collab_configure` (select the worker with `worker`).',
-        '- When a message starting with [Collaboration report] arrives, dispatch the next round or call `collab_done` for that worker; `collab_status` shows every worker.',
-        '- Unless the user explicitly asks, do not do the workers\' delivery work yourself; you break down, review, and decide.',
         maxRounds > 0 ? `- At most ${maxRounds} rounds per worker.` : '- Rounds are unlimited; continue until you call collab_done.',
       ].join('\n')
     },
@@ -2908,13 +2908,53 @@ export function apply(ctx, rawConfig) {
       name: 'collab',
       description: '双对话协作：查看全部任务、关联员工、阶段队列、跨设备中继、设置项目名、配置预设与语言、派发任务、收尾或解除。',
       input: {
-        hint: 'tasks | status | link --peer <id|new> | create --name <名字> | stage --action add --prompt ... | relay --action set --mode hub|ntfy | remote --action link --device <名> --worker <别名> | project --name <项目名> | dispatch --worker <id> --task ... | done --worker <id> --summary ...',
+        hint: 'tasks | status | link --peer <id|new> | create --name <名字> | manage --name <名字> | stage --action add --prompt ... | relay --action set --mode hub|ntfy | remote --action link --device <名> --worker <别名> | project --name <项目名> | dispatch --worker <id> --task ... | done --worker <id> --summary ...',
       },
       handler: async (invocation) => {
         try {
           const { action, args } = parseCommandBody(invocation.rawInput)
           if (action === 'tasks' || action === 'board') {
             return { kind: 'success', text: JSON.stringify(await tasksBoard()) }
+          }
+          if (action === 'manage') {
+            const agent = invocation.agent
+            if (agent === undefined) return { kind: 'error', text: '无法确定当前对话。' }
+            if (workerAssociation(agent.id) !== undefined) return { kind: 'error', text: '当前对话是员工，不能设为项目经理。' }
+            let worker = null
+            if (usableManagerLinks(agent.id).length === 0) {
+              try {
+                const created = await toolExecutors.create.execute(
+                  { name: typeof args?.name === 'string' ? args.name : '', mode: 'temporary' },
+                  { agent, signal: invocation.signal },
+                )
+                worker = created.sessionId
+              } catch (error) {
+                return { kind: 'error', text: error instanceof Error ? error.message : String(error) }
+              }
+            }
+            const text = cfg.language === 'en'
+              ? [
+                '[Project manager mode]',
+                'You have been set as the project manager. By default you create workers yourself and delegate the execution.',
+                '',
+                '- When work needs doing, use `collab_worker_create` to make the right worker(s) (multiple roles if needed), then `collab_dispatch`.',
+                '- Do not do the workers\' execution work yourself; keep your context for reviewing reports and dispatching again, so a long execution does not make you miss worker reports.',
+                '- Confirm the project goal first; if the user has not given one, ask before creating workers and dispatching the first stage.',
+              ].join('\n')
+              : [
+                '【项目经理模式】',
+                '你已被设为项目经理。默认由你自主创建员工，并把执行工作派给员工。',
+                '',
+                '- 需要执行时，先用 `collab_worker_create` 创建合适的员工（可以按角色建多个），再用 `collab_dispatch` 派发。',
+                '- 不要自己承担员工的具体执行工作；把上下文留给验收和继续派发，避免因长时间自己干活而错过员工回报。',
+                '- 先确认项目目标；如果用户还没给目标，先问清楚，再创建员工并派发第一阶段。',
+              ].join('\n')
+            try {
+              await deliver(agent.id, text, `cp-manage-${randomUUID().slice(0, 8)}`, 'queue', AbortSignal.timeout(PROMPT_TIMEOUT_MS))
+            } catch (error) {
+              return { kind: 'error', text: `项目经理已设置，但启动提示投递失败：${deliveryFailure(error)}` }
+            }
+            return { kind: 'success', text: JSON.stringify({ ok: true, worker, prompted: true }) }
           }
           if (action === 'relay') {
             const sub = typeof args?.action === 'string' ? args.action : 'get'

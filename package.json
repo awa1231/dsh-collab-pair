@@ -1,6 +1,6 @@
 ﻿{
   "name": "dsh-collab-pair",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "For large projects: link a project-manager conversation with local or remote workers across devices (temporary or permanent), dispatch each round from the manager, relay results automatically, pre-write a stage queue that advances when a stage completes, and manage it all from a visual Settings page and a conversation context menu. Includes a relay hub and a free ntfy.sh transport for cross-device runs.",
   "type": "module",
   "license": "MIT",

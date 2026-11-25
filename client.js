@@ -138,7 +138,7 @@ window.__ModuleLoader__.load({
         stageStart: '开始',
         stageComplete: '完成并发下一阶段',
         stageRemove: '删除',
-        menuSetManager: '设为项目经理（新建员工）',
+        menuSetManager: '设为项目经理并启动',
         menuWorkerName: '新员工名字',
         menuFailed: '创建员工失败',
       },
@@ -274,7 +274,7 @@ window.__ModuleLoader__.load({
         stageStart: 'Start',
         stageComplete: 'Complete and dispatch next',
         stageRemove: 'Remove',
-        menuSetManager: 'Set as project manager (new worker)',
+        menuSetManager: 'Set as project manager (start)',
         menuWorkerName: 'New worker name',
         menuFailed: 'Could not create the worker',
       },
@@ -1279,7 +1279,7 @@ window.__ModuleLoader__.load({
           const name = typeof answer === 'string' ? answer.trim() : ''
           setBusy(true)
           try {
-            await runCommand(commands, sessionId, `/collab create ${JSON.stringify(name === '' ? {} : { name })}`)
+            await runCommand(commands, sessionId, `/collab manage ${JSON.stringify(name === '' ? {} : { name })}`)
           } catch (cause) {
             const detail = cause instanceof Error ? cause.message : String(cause)
             if (typeof window.alert === 'function') window.alert(`${boundT('menuFailed')}\n${detail}`)

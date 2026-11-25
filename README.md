@@ -39,7 +39,15 @@ Manager receives a collaboration report → next round for that worker, or colla
 4. **Cross-device** — relay mode (off / self-hosted hub / free ntfy.sh), URL, room, token and device name; save/test, connection status, worker alias registration, and remote-worker linking.
 5. **Stage queue** (manager only) — pick a worker, add a stage title/prompt/acceptance, then start it, complete it (auto-dispatches the next), or remove a pending one.
 
-Right-click a conversation in the sidebar and choose **Set as project manager (new worker)**: the plugin creates and links a fresh worker, so that conversation becomes a manager.
+Right-click a conversation in the sidebar and choose **Set as project manager (start)**: the plugin creates and links a starter worker, then sends that conversation a manager-mode instruction to create more workers itself and delegate the execution.
+
+### Manager mode
+
+Once a conversation is a manager, its prompt tells it to:
+
+- create workers itself with `collab_worker_create` instead of waiting for the human to do it;
+- delegate execution and keep its own context for reviewing reports and dispatching again — it should not spend a long turn doing a worker's job;
+- confirm the project goal before creating workers and dispatching the first stage.
 
 The manager card also shows the **project name** and lets you rename it.
 
@@ -283,7 +291,15 @@ dsh plugin add dsh-collab-pair
 4. **跨设备协作**：中继模式（关闭 / 自建 hub / 免费 ntfy.sh）、URL、房间、令牌、设备名；保存/测试、连接状态、员工别名注册、远端员工关联。
 5. **阶段队列**（仅项目经理）：选员工，填标题/提示词/验收标准；可开始、完成并自动派发下一阶段、删除待开始阶段。
 
-在侧栏右键一个对话，选「设为项目经理（新建员工）」：插件会新建并关联一个员工，使该对话成为项目经理。
+在侧栏右键一个对话，选「设为项目经理并启动」：插件会新建并关联一个起始员工，然后给该对话发一条「项目经理模式」指令，让它自己创建更多员工并把执行工作派出去。
+
+### 项目经理模式
+
+对话成为项目经理后，提示词会要求它：
+
+- 需要人干活时自己用 `collab_worker_create` 创建员工，不等待用户手动新建；
+- 把执行交给员工，自己的上下文留给验收和继续派发——不要花长时间亲自做员工的活；
+- 创建员工和派发第一阶段之前，先确认项目目标。
 
 页面只做关联/解除和查看，不代填目标、任务、验收——这些交给项目经理对话。
 
