@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Two linked conversations">
+  <defs>
+    <linearGradient id="cpA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="cpB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#0d9488"/>
+    </linearGradient>
+  </defs>
+  <path d="M11 9h24a7 7 0 0 1 7 7v9a7 7 0 0 1-7 7H22l-8 6v-6h-3a7 7 0 0 1-7-7v-9a7 7 0 0 1 7-7z" fill="url(#cpA)"/>
+  <circle cx="15" cy="20.5" r="2.1" fill="#eaf1ff"/>
+  <circle cx="23" cy="20.5" r="2.1" fill="#eaf1ff"/>
+  <circle cx="31" cy="20.5" r="2.1" fill="#eaf1ff"/>
+  <path d="M29 33h24a7 7 0 0 1 7 7v9a7 7 0 0 1-7 7H46v6l-8-6H29a7 7 0 0 1-7-7v-9a7 7 0 0 1 7-7z" fill="url(#cpB)"/>
+  <circle cx="33" cy="44.5" r="2.1" fill="#e7fffb"/>
+  <circle cx="41" cy="44.5" r="2.1" fill="#e7fffb"/>
+  <circle cx="49" cy="44.5" r="2.1" fill="#e7fffb"/>
+  <path d="M40 28.5c5.4 0 8.5 2.6 8.5 6.6" fill="none" stroke="#94a3b8" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M48.5 35.1l-2.6-1.9 4.9-1.4" fill="none" stroke="#94a3b8" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M24 34.5c-5.4 0-8.5-2.6-8.5-6.6" fill="none" stroke="#94a3b8" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M15.5 27.9l2.6 1.9-4.9 1.4" fill="none" stroke="#94a3b8" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

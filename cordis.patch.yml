@@ -1,0 +1,19 @@
+- insert:
+    - id: collab-pair
+      name: 'dsh-collab-pair'
+      config:
+        maxRounds: 0
+        maxRelayChars: 12000
+        maxHistory: 20
+        notifyWorkerOnDone: true
+        addPrefix: true
+        prefixManager: '【项目经理】'
+        prefixWorker: '【员工】'
+        language: zh
+        autoNudge: true
+        nudgeAfterMinutes: 20
+        maxNudges: 3
+        hubUrl: ''
+        hubRoom: 'default'
+        hubToken: ''
+        deviceName: ''
