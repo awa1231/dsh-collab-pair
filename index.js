@@ -41,7 +41,7 @@ const DONE = 'done'
 const STOPPED = 'stopped'
 const REPORTS = new Set(['done', 'partial', 'blocked'])
 const PROMPT_TIMEOUT_MS = 180000
-const ENGINE = 'collab-pair/1.4.3'
+const ENGINE = 'collab-pair/1.5.0'
 
 /** A recoverable failure whose message is meant for the model. */
 class CollabError extends Error {}
@@ -527,6 +527,7 @@ export function apply(ctx, rawConfig) {
   let storageError = null
   const remoteAliases = new Map()
   const remoteInbound = new Map()
+  const queues = new Map()
   let remoteState = 'pending'
   let remoteCursor = 0
   let remoteLastError = null
@@ -787,6 +788,165 @@ export function apply(ctx, rawConfig) {
     } catch (error) {
       ctx.logger.warn(`collab-pair: saving the relay cursor failed: ${String(error)}`)
     }
+  }
+
+  // ------------------------------------------------------------ session to-do
+
+  function normalizeQueue(value, sessionId) {
+    const items = []
+    for (const item of Array.isArray(value?.items) ? value.items.slice(0, 100) : []) {
+      if (item === null || typeof item !== 'object') continue
+      const prompt = typeof item.prompt === 'string' ? item.prompt.trim() : ''
+      if (prompt === '') continue
+      const status = item.status === 'sent' || item.status === 'done' ? item.status : 'pending'
+      items.push({
+        id: typeof item.id === 'string' ? item.id : `q-${randomUUID().slice(0, 8)}`,
+        title: typeof item.title === 'string' ? item.title : '',
+        prompt,
+        status,
+        ...(typeof item.sentAt === 'number' ? { sentAt: item.sentAt } : {}),
+        ...(typeof item.completedAt === 'number' ? { completedAt: item.completedAt } : {}),
+        ...(typeof item.requestId === 'string' ? { requestId: item.requestId } : {}),
+        ...(typeof item.marker === 'string' ? { marker: item.marker } : {}),
+      })
+    }
+    let activeId = typeof value?.activeId === 'string' ? value.activeId : null
+    if (activeId !== null && !items.some((item) => item.id === activeId && item.status === 'sent')) activeId = null
+    if (activeId === null) {
+      const sent = items.find((item) => item.status === 'sent')
+      if (sent !== undefined) activeId = sent.id
+    }
+    return {
+      sessionId,
+      items,
+      activeId,
+      auto: value?.auto !== false,
+      updatedAt: Number.isFinite(value?.updatedAt) ? value.updatedAt : Date.now(),
+    }
+  }
+
+  async function readQueue(sessionId) {
+    const cached = queues.get(sessionId)
+    if (cached !== undefined) return cached
+    let stored
+    const domain = await remoteReady.catch(() => undefined)
+    if (domain !== undefined) {
+      try {
+        stored = [...domain.table('state').entries()].find(([key]) => key === `queue:${sessionId}`)?.[1]
+      } catch (error) {
+        ctx.logger.warn(`collab-pair: reading the queue for ${sessionId} failed: ${String(error)}`)
+      }
+    }
+    const queue = normalizeQueue(stored, sessionId)
+    queues.set(sessionId, queue)
+    return queue
+  }
+
+  async function persistQueue(queue) {
+    queues.set(queue.sessionId, queue)
+    const domain = await remoteReady.catch(() => undefined)
+    if (domain === undefined) return
+    try {
+      await domain.table('state').put(`queue:${queue.sessionId}`, JSON.parse(JSON.stringify(queue)))
+    } catch (error) {
+      ctx.logger.warn(`collab-pair: persisting the queue for ${queue.sessionId} failed: ${String(error)}`)
+    }
+  }
+
+  function queueView(queue) {
+    return {
+      sessionId: queue.sessionId,
+      auto: queue.auto,
+      active: queue.activeId,
+      items: queue.items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        prompt: clip(item.prompt, 400),
+        status: item.status,
+        ...(item.sentAt === undefined ? {} : { sentAt: isoTime(item.sentAt) }),
+        ...(item.completedAt === undefined ? {} : { completedAt: isoTime(item.completedAt) }),
+      })),
+    }
+  }
+
+  /** Send the first pending prompt as a normal user turn. */
+  async function startQueueItem(sessionId, signal) {
+    const queue = await readQueue(sessionId)
+    if (queue.activeId !== null) throw new CollabError('当前待办仍在等待完成；先等这一轮结束，或暂停队列。')
+    const next = queue.items.find((item) => item.status === 'pending')
+    if (next === undefined) throw new CollabError('队列里没有待发送的提示词。')
+    const index = queue.items.indexOf(next) + 1
+    const requestId = `cp-queue-${sessionId}-${next.id}`
+    const marker = `[[collab-queue:${next.id}]]`
+    next.status = 'sent'
+    next.sentAt = Date.now()
+    next.requestId = requestId
+    next.marker = marker
+    queue.activeId = next.id
+    queue.updatedAt = Date.now()
+    await persistQueue(queue)
+    const text = [
+      `【对话待办 ${index}/${queue.items.length}】`,
+      ...(next.title === '' ? [] : [next.title]),
+      '',
+      next.prompt,
+      '',
+      '完成本轮后直接给出结果；若队列还有下一条，会在本轮结束后自动发送。',
+      marker,
+    ].join('\n')
+    try {
+      await deliver(sessionId, text, requestId, 'queue', signal ?? AbortSignal.timeout(PROMPT_TIMEOUT_MS))
+    } catch (error) {
+      next.status = 'pending'
+      delete next.sentAt
+      delete next.requestId
+      delete next.marker
+      queue.activeId = null
+      queue.updatedAt = Date.now()
+      await persistQueue(queue)
+      throw error
+    }
+    return { queue, item: next }
+  }
+
+  /** Finish the active queue turn and send the next prompt when auto is on. */
+  async function advanceQueue(session, event) {
+    const queue = await readQueue(session.id)
+    if (queue.activeId === null) return
+    const active = queue.items.find((item) => item.id === queue.activeId && item.status === 'sent')
+    if (active === undefined) return
+    const turn = event.data?.turn
+    if (!Number.isSafeInteger(turn)) return
+    let events
+    try {
+      events = turnEvents(session, turn, event.seq)
+    } catch (error) {
+      ctx.logger.warn(`collab-pair: reading a queue turn failed: ${String(error)}`)
+      return
+    }
+    if (events === undefined || !claimedQueue(events, active)) return
+    active.status = 'done'
+    active.completedAt = Date.now()
+    queue.activeId = null
+    queue.updatedAt = Date.now()
+    await persistQueue(queue)
+    if (!queue.auto) return
+    if (queue.items.some((item) => item.status === 'pending')) {
+      try {
+        await startQueueItem(session.id, AbortSignal.timeout(PROMPT_TIMEOUT_MS))
+      } catch (error) {
+        ctx.logger.warn(`collab-pair: sending the next queue item for ${session.id} failed: ${String(error)}`)
+      }
+    }
+  }
+
+  function claimedQueue(events, item) {
+    for (const event of events) {
+      if (event.type !== 'user/message') continue
+      if (typeof item.requestId === 'string' && event.data?.source?.rpcId === item.requestId) return true
+      if (typeof item.marker === 'string' && messageText(event.data).includes(item.marker)) return true
+    }
+    return false
   }
 
   function hubConfigured() {
@@ -1887,6 +2047,7 @@ export function apply(ctx, rawConfig) {
   /** Global post-commit listener: relay a worker turn that answered a dispatch. */
   function onSessionEvent(session, event) {
     if (event?.type !== 'turn/end') return
+    void advanceQueue(session, event).catch((error) => ctx.logger.warn(`collab-pair: advancing a queue failed: ${String(error)}`))
     const inbound = remoteInbound.get(session.id)
     if (inbound !== undefined) {
       void handleRemoteTurnEnd(session, event, inbound)
@@ -2908,13 +3069,62 @@ export function apply(ctx, rawConfig) {
       name: 'collab',
       description: '双对话协作：查看全部任务、关联员工、阶段队列、跨设备中继、设置项目名、配置预设与语言、派发任务、收尾或解除。',
       input: {
-        hint: 'tasks | status | link --peer <id|new> | create --name <名字> | manage --name <名字> | stage --action add --prompt ... | relay --action set --mode hub|ntfy | remote --action link --device <名> --worker <别名> | project --name <项目名> | dispatch --worker <id> --task ... | done --worker <id> --summary ...',
+        hint: 'tasks | status | queue --action add --prompt ... | link --peer <id|new> | create --name <名字> | manage --name <名字> | stage --action add --prompt ... | relay --action set --mode hub|ntfy | remote --action link --device <名> --worker <别名> | project --name <项目名> | dispatch --worker <id> --task ... | done --worker <id> --summary ...',
       },
       handler: async (invocation) => {
         try {
           const { action, args } = parseCommandBody(invocation.rawInput)
           if (action === 'tasks' || action === 'board') {
             return { kind: 'success', text: JSON.stringify(await tasksBoard()) }
+          }
+          if (action === 'queue') {
+            const agent = invocation.agent
+            if (agent === undefined) return { kind: 'error', text: '无法确定当前对话。' }
+            const sub = typeof args?.action === 'string' ? args.action : 'list'
+            const queue = await readQueue(agent.id)
+            if (sub === 'list' || sub === 'status') {
+              return { kind: 'success', text: JSON.stringify(queueView(queue)) }
+            }
+            if (sub === 'add') {
+              const prompt = typeof args?.prompt === 'string' ? args.prompt.trim() : ''
+              if (prompt === '') return { kind: 'error', text: 'prompt 不能为空。' }
+              queue.items.push({
+                id: `q-${randomUUID().slice(0, 8)}`,
+                title: typeof args?.title === 'string' ? args.title.trim() : '',
+                prompt,
+                status: 'pending',
+              })
+              queue.updatedAt = Date.now()
+              await persistQueue(queue)
+              return { kind: 'success', text: JSON.stringify(queueView(queue)) }
+            }
+            if (sub === 'start') {
+              const { queue: started, item } = await startQueueItem(agent.id, invocation.signal)
+              return { kind: 'success', text: JSON.stringify({ ...queueView(started), started: item.id }) }
+            }
+            if (sub === 'pause' || sub === 'resume') {
+              queue.auto = sub === 'resume'
+              queue.updatedAt = Date.now()
+              await persistQueue(queue)
+              return { kind: 'success', text: JSON.stringify(queueView(queue)) }
+            }
+            if (sub === 'remove') {
+              const index = clampInt(args?.index, 1, 100, 0)
+              const item = index > 0 ? queue.items[index - 1] : undefined
+              if (item === undefined) return { kind: 'error', text: 'index 超出范围。' }
+              if (item.status !== 'pending') return { kind: 'error', text: '只能删除尚未发送的条目。' }
+              queue.items.splice(index - 1, 1)
+              queue.updatedAt = Date.now()
+              await persistQueue(queue)
+              return { kind: 'success', text: JSON.stringify(queueView(queue)) }
+            }
+            if (sub === 'clear') {
+              queue.items = queue.items.filter((item) => item.status !== 'pending')
+              queue.updatedAt = Date.now()
+              await persistQueue(queue)
+              return { kind: 'success', text: JSON.stringify(queueView(queue)) }
+            }
+            return { kind: 'error', text: 'action 必须是 list | add | start | pause | resume | remove | clear。' }
           }
           if (action === 'manage') {
             const agent = invocation.agent

@@ -1,6 +1,6 @@
 # dsh-collab-pair
 
-> A DSH plugin for large projects: link one project-manager conversation to one or more worker conversations. Dispatch each round once from the manager instead of repeating prompts across conversations; results come back automatically, and unattended runs keep moving.
+> A DSH collaboration plugin for large projects: link a project-manager conversation to local or remote workers, dispatch rounds, relay results and manage stages. It also provides a prompt to-do queue for any conversation: pre-write several prompts and the next one is sent when a turn ends.
 
 [**GitHub**](https://github.com/awa1231/dsh-collab-pair) · [Give it a star ★](https://github.com/awa1231/dsh-collab-pair)
 
@@ -38,6 +38,7 @@ Manager receives a collaboration report → next round for that worker, or colla
 3. **All tasks** — a board across every collaboration, grouped by **project**. Each row shows the worker, round, **working state** (`Working` / `Waiting for report` / `Idle` / `Finished`), waiting time, current task, and latest report. Refresh re-reads it.
 4. **Cross-device** — relay mode (off / self-hosted hub / free ntfy.sh), URL, room, token and device name; save/test, connection status, worker alias registration, and remote-worker linking.
 5. **Stage queue** (manager only) — pick a worker, add a stage title/prompt/acceptance, then start it, complete it (auto-dispatches the next), or remove a pending one.
+6. **Conversation to-do** (any other conversation) — pre-write a series of prompts; the first is sent when you press start, and the next is sent when the current turn ends. Pause, resume, or clear pending items.
 
 Right-click a conversation in the sidebar and choose **Set as project manager (start)**: the plugin creates and links a starter worker, then sends that conversation a manager-mode instruction to create more workers itself and delegate the execution.
 
@@ -119,6 +120,15 @@ A human can pre-write several large stages for one worker; finishing one dispatc
 - A stage is a normal round: the worker reports as usual, and `complete` waits until no round is pending.
 - The queue is stored on the worker link; `remove` deletes a pending stage, `clear` removes all pending stages.
 
+## Conversation to-do queue
+
+Any conversation, not only a manager, can have its own prompt queue:
+
+- Add items in the **Conversation to-do** card, or `/collab queue {"action":"add","title":"…","prompt":"…"}`.
+- `start` sends the first pending prompt as a normal user message; when that turn ends, the next pending prompt is sent automatically.
+- `pause` stops auto-advance after the current turn, `resume` re-enables it, and `clear` removes pending items.
+- The queue is stored per conversation and survives plugin reloads.
+
 ## Projects
 
 A project is the set of workers managed by one project-manager conversation. Different managers are different projects, so nothing mixes:
@@ -193,6 +203,7 @@ The settings page uses it; it can also be typed manually:
 /collab create {"name":"前端","preset":"standard"}
 /collab remote {"action":"link","device":"laptop","worker":"frontend"}
 /collab stage {"action":"add","title":"阶段一","prompt":"…"}
+/collab queue {"action":"add","title":"第一步","prompt":"…"}
 /collab relay {"action":"set","mode":"ntfy","hubRoom":"my-project","hubToken":"…"}
 /collab configure {"worker":"session-…","preset":"ptc"}
 /collab configure {"worker":"session-…","provider":"deepseek-account","model":"deepseek-flash"}
@@ -252,7 +263,7 @@ One record per worker lives in `$DSH_HOME/storages/collab_pair.json` (storage-do
 
 # 中文说明
 
-> DSH 插件：一个项目经理对话管理多个员工对话，任务自动流转，并提供全部任务看板。
+> 用于大项目的 DSH 协作插件：把项目经理对话与本机/远端员工关联，自动派发、回传并推进阶段；也可以给任意对话预设一串提示词待办，完成一轮自动发下一条。
 
 [**GitHub**](https://github.com/awa1231/dsh-collab-pair) · [给个 Star ★](https://github.com/awa1231/dsh-collab-pair)
 
@@ -280,7 +291,7 @@ dsh plugin add dsh-collab-pair
 
 ## 可视化设置页
 
-**设置 → 双对话协作**，从上到下：
+**设置 → 协作待办**，从上到下：
 
 1. **工作会话**：选择要操作的对话（默认当前打开的对话）。
 2. **当前会话 · <标题>**：先看**这个对话自己的**关联与状态。
@@ -289,7 +300,8 @@ dsh plugin add dsh-collab-pair
    - 无关联：直接显示关联表单。
 3. **全部任务**：所有协作的任务看板，不限当前会话。每行显示员工、所属项目经理、第几轮、**工作状态**（`工作中` / `等待回报` / `空闲` / `已结束`）、等待时长、本轮任务、最近回报。点「刷新」重新读取。
 4. **跨设备协作**：中继模式（关闭 / 自建 hub / 免费 ntfy.sh）、URL、房间、令牌、设备名；保存/测试、连接状态、员工别名注册、远端员工关联。
-5. **阶段队列**（仅项目经理）：选员工，填标题/提示词/验收标准；可开始、完成并自动派发下一阶段、删除待开始阶段。
+5. **阶段待办**（仅项目经理）：选员工，填标题/提示词/验收标准；可开始、完成并自动派发下一阶段、删除待开始阶段。
+6. **对话待办**（其他任意对话）：预先写一串提示词；点开始发第一条，当前回合结束后自动发下一条。可暂停、恢复、清空待发。
 
 在侧栏右键一个对话，选「设为项目经理并启动」：插件会新建并关联一个起始员工，然后给该对话发一条「项目经理模式」指令，让它自己创建更多员工并把执行工作派出去。
 
@@ -367,6 +379,15 @@ collab_dispatch({ worker: "前端", task: "…" })
 - 阶段本质就是普通的一轮：员工照常回报；仍有轮次在等待回报时，`complete` 会拒绝。
 - 队列保存在员工关联上；`remove` 删除待开始阶段，`clear` 清空所有待开始阶段。
 
+## 对话待办队列
+
+任意对话（不只是项目经理）都可以有自己的提示词队列：
+
+- 在「对话待办」卡片里添加，或 `/collab queue {"action":"add","title":"…","prompt":"…"}`。
+- `start` 把第一条待发提示词作为普通用户消息发进去；该回合结束后，自动发送下一条。
+- `pause` 在当前回合后停止自动连发，`resume` 恢复，`clear` 清空待发。
+- 队列按对话保存，插件重载后仍在。
+
 ## 项目
 
 一个项目就是「一个项目经理对话所管理的员工集合」。不同项目经理就是不同项目，互不混淆：
@@ -437,6 +458,7 @@ collab_dispatch({ worker: "前端", task: "…" })
 /collab create {"name":"前端","preset":"standard"}
 /collab remote {"action":"link","device":"laptop","worker":"frontend"}
 /collab stage {"action":"add","title":"阶段一","prompt":"…"}
+/collab queue {"action":"add","title":"第一步","prompt":"…"}
 /collab relay {"action":"set","mode":"ntfy","hubRoom":"my-project","hubToken":"…"}
 /collab configure {"worker":"session-…","preset":"ptc"}
 /collab configure {"worker":"session-…","provider":"deepseek-account","model":"deepseek-flash"}

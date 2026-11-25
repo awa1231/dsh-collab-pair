@@ -7,9 +7,9 @@ window.__ModuleLoader__.load({
 
     const MESSAGES = {
       zh: {
-        nav: '双对话协作',
-        title: '双对话协作',
-        intro: '做大项目时，不必再反复把同一套提示词分别发给多个对话：关联一次，之后每轮都由项目经理派发，员工产出自动回传；长时间挂机也能自动推进。插件只负责关联与推进，目标、任务和验收仍由项目经理掌握。',
+        nav: '协作待办',
+        title: '协作待办',
+        intro: '把对话组织成协作网络：项目经理自主创建员工、派发任务并验收回报；也可以给任意对话预设一串提示词，完成一轮自动发下一条。核心是协作，待办队列用来把长流程串起来。',
         workSession: '工作会话',
         workSessionHint: '选择要操作的对话。建立关联时，它就是项目经理对话。',
         messageLanguage: '对话消息语言',
@@ -117,7 +117,7 @@ window.__ModuleLoader__.load({
         remoteMissing: '请填写远端设备和别名。',
         remoteLinkDone: '已关联远端员工，接着给它派发任务。',
         stageTitle: '阶段待办（To-do）',
-        stageNoManager: '这个对话还不是项目经理。先在下方关联一个员工，或在侧栏右键该对话选择「设为项目经理（新建员工）」，之后就能在这里预先写多个大阶段。',
+        stageNoManager: '这个对话还不是项目经理。先在下方关联一个员工，或在侧栏右键该对话选择「设为项目经理并启动」，之后就能在这里预先写多个大阶段。',
         stageIntro: '先写好几个大阶段，完成一个会自动派发下一个。',
         stageEmpty: '还没有阶段。先添加几个大阶段，完成一个会自动派发下一个。',
         stageWorker: '员工',
@@ -126,6 +126,23 @@ window.__ModuleLoader__.load({
         stagePrompt: '提示词',
         stageAcceptance: '验收标准',
         stageAdd: '添加到阶段队列',
+        queueTitle: '对话待办（自动连发）',
+        queueIntro: '给这个对话预先写好一系列提示词；每轮结束后自动发下一条。',
+        queueAddTitle: '标题（可选）',
+        queuePrompt: '提示词 / 任务',
+        queueAdd: '加到队尾',
+        queueStart: '发送下一条',
+        queuePause: '暂停自动连发',
+        queueResume: '恢复自动连发',
+        queueClear: '清空待发',
+        queueEmpty: '还没有待办。',
+        queuePending: '待发',
+        queueSent: '进行中',
+        queueDone: '完成',
+        queueRemove: '删除',
+        queueUntitled: '未命名任务',
+        queueAuto: '自动连发',
+        queuePaused: '已暂停',
         stageAdded: '阶段已添加。',
         stageStarted: '阶段已开始。',
         stageFinished: '阶段已完成。',
@@ -143,9 +160,9 @@ window.__ModuleLoader__.load({
         menuFailed: '创建员工失败',
       },
       en: {
-        nav: 'Collaboration pair',
-        title: 'Collaboration pair',
-        intro: 'On large projects you no longer repeat the same prompts across conversations: link once, then the manager dispatches every round and worker results come back automatically, with unattended runs kept moving. The plugin only links and drives; the goal, tasks, and acceptance stay with the manager.',
+        nav: 'Collab To-do',
+        title: 'Collab To-do',
+        intro: 'Organise conversations into a collaboration network: a manager creates workers, dispatches tasks and reviews reports; pre-write a prompt queue for any conversation to advance after each turn. Collaboration is the core; the to-do queue strings long workflows together.',
         workSession: 'Working conversation',
         workSessionHint: 'The conversation to act on. When you create a link, it becomes the project manager.',
         messageLanguage: 'Message language',
@@ -253,7 +270,7 @@ window.__ModuleLoader__.load({
         remoteMissing: 'Enter the remote device and alias.',
         remoteLinkDone: 'Remote worker linked; dispatch a task next.',
         stageTitle: 'To-do list',
-        stageNoManager: 'This conversation is not a project manager yet. Link a worker below, or right-click the conversation in the sidebar and choose "Set as project manager (new worker)"; then you can pre-write multiple stages here.',
+        stageNoManager: 'This conversation is not a project manager yet. Link a worker below, or right-click the conversation in the sidebar and choose "Set as project manager (start)"; then you can pre-write multiple stages here.',
         stageIntro: 'Write a few large stages up front; completing one dispatches the next automatically.',
         stageEmpty: 'No stage yet. Add a few large stages; completing one dispatches the next automatically.',
         stageWorker: 'Worker',
@@ -262,6 +279,23 @@ window.__ModuleLoader__.load({
         stagePrompt: 'Prompt',
         stageAcceptance: 'Acceptance',
         stageAdd: 'Add to stage queue',
+        queueTitle: 'Conversation to-do (auto-advance)',
+        queueIntro: 'Pre-write a series of prompts for this conversation; the next one is sent when a turn ends.',
+        queueAddTitle: 'Title (optional)',
+        queuePrompt: 'Prompt / task',
+        queueAdd: 'Append',
+        queueStart: 'Send next',
+        queuePause: 'Pause auto-advance',
+        queueResume: 'Resume auto-advance',
+        queueClear: 'Clear pending',
+        queueEmpty: 'No items yet.',
+        queuePending: 'Pending',
+        queueSent: 'Running',
+        queueDone: 'Done',
+        queueRemove: 'Remove',
+        queueUntitled: 'Untitled task',
+        queueAuto: 'Auto-advance',
+        queuePaused: 'Paused',
         stageAdded: 'Stage added.',
         stageStarted: 'Stage started.',
         stageFinished: 'Stage finished.',
@@ -385,6 +419,10 @@ window.__ModuleLoader__.load({
       const [stageTitle, setStageTitle] = React.useState('')
       const [stagePrompt, setStagePrompt] = React.useState('')
       const [stageAcceptance, setStageAcceptance] = React.useState('')
+      const [queue, setQueue] = React.useState(null)
+      const [queueTitle, setQueueTitle] = React.useState('')
+      const [queuePrompt, setQueuePrompt] = React.useState('')
+      const [queueBusy, setQueueBusy] = React.useState(false)
       const commandsRef = React.useRef(commands)
       commandsRef.current = commands
 
@@ -545,6 +583,44 @@ window.__ModuleLoader__.load({
       }
 
       /** Run one command, show the dictionary text, then refresh the board. */
+      const readQueue = async (sessionId) => {
+        try {
+          const value = await runCommand(commandsRef.current, sessionId, '/collab queue {"action":"list"}')
+          if (value !== null && typeof value === 'object' && Array.isArray(value.items)) setQueue(value)
+          return value
+        } catch {
+          setQueue(null)
+          return null
+        }
+      }
+
+      const queueAction = async (action, extra = {}) => {
+        if (workId === undefined) return
+        setQueueBusy(true)
+        setError(null)
+        setNotice(null)
+        try {
+          const value = await runCommand(commandsRef.current, workId, `/collab queue ${JSON.stringify({ action, ...extra })}`)
+          if (value !== null && typeof value === 'object' && Array.isArray(value.items)) setQueue(value)
+          if (action === 'add') {
+            setQueueTitle('')
+            setQueuePrompt('')
+          }
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : String(cause))
+        } finally {
+          setQueueBusy(false)
+        }
+      }
+
+      React.useEffect(() => {
+        if (workId === undefined) {
+          setQueue(null)
+          return
+        }
+        void readQueue(workId)
+      }, [workId])
+
       const runAction = async (line, successText) => {
         if (workId === undefined) return
         setBusy(true)
@@ -1019,7 +1095,7 @@ window.__ModuleLoader__.load({
         )
       }
 
-      const stageCard = h('div', { style: S.card },
+      const stageCard = role !== 'manager' ? null : h('div', { style: S.card },
         h('div', { style: S.cardHead },
           h('h3', { style: S.cardTitle }, t('stageTitle')),
           h('span', { style: S.muted }, t('stageIntro')),
@@ -1079,6 +1155,79 @@ window.__ModuleLoader__.load({
                 ? h('p', { style: S.intro }, t('stageEmpty'))
                 : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } }, stageList.map(stageRow)),
             ),
+        )
+
+      const queueItems = queue !== null && typeof queue === 'object' && Array.isArray(queue.items) ? queue.items : []
+      const queueCard = role === 'manager'
+        ? null
+        : h('div', { style: S.card },
+          h('div', { style: S.cardHead },
+            h('h3', { style: S.cardTitle }, t('queueTitle')),
+            h('span', { style: S.badge }, queue !== null && queue.auto === false ? t('queuePaused') : t('queueAuto')),
+          ),
+          h('p', { style: S.intro }, t('queueIntro')),
+          h('label', { style: S.label }, t('queueAddTitle'),
+            h('input', {
+              style: S.input,
+              value: queueTitle,
+              disabled: queueBusy,
+              onChange: (event) => setQueueTitle(event.target.value),
+            })),
+          h('label', { style: S.label }, t('queuePrompt'),
+            h('textarea', {
+              style: { ...S.input, minHeight: 88, resize: 'vertical' },
+              value: queuePrompt,
+              disabled: queueBusy,
+              onChange: (event) => setQueuePrompt(event.target.value),
+            })),
+          h('div', { style: S.row },
+            h('button', {
+              type: 'button',
+              style: S.primary,
+              disabled: queueBusy || queuePrompt.trim() === '',
+              onClick: () => void queueAction('add', { title: queueTitle.trim(), prompt: queuePrompt.trim() }),
+            }, t('queueAdd')),
+          ),
+          h('div', { style: S.row },
+            h('button', {
+              type: 'button',
+              style: S.secondary,
+              disabled: queueBusy || queue === null || queue.active !== null || !queueItems.some((item) => item.status === 'pending'),
+              onClick: () => void queueAction('start'),
+            }, t('queueStart')),
+            h('button', {
+              type: 'button',
+              style: S.secondary,
+              disabled: queueBusy || queue === null,
+              onClick: () => void queueAction(queue !== null && queue.auto === false ? 'resume' : 'pause'),
+            }, queue !== null && queue.auto === false ? t('queueResume') : t('queuePause')),
+            h('button', {
+              type: 'button',
+              style: S.danger,
+              disabled: queueBusy || queue === null || !queueItems.some((item) => item.status === 'pending'),
+              onClick: () => void queueAction('clear'),
+            }, t('queueClear')),
+          ),
+          queue === null
+            ? h('p', { style: S.intro }, t('loading'))
+            : queueItems.length === 0
+              ? h('p', { style: S.intro }, t('queueEmpty'))
+              : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+                queueItems.map((item, index) => h('div', { key: item.id, style: S.worker },
+                  h('div', { style: S.workerMain },
+                    h('div', { style: S.workerName }, `${index + 1}. ${item.title || t('queueUntitled')}`),
+                    h('div', { style: S.muted }, `${item.status === 'pending' ? t('queuePending') : item.status === 'sent' ? t('queueSent') : t('queueDone')} · ${item.prompt}`),
+                  ),
+                  item.status === 'pending'
+                    ? h('button', {
+                      type: 'button',
+                      style: S.danger,
+                      disabled: queueBusy,
+                      onClick: () => void queueAction('remove', { index: index + 1 }),
+                    }, t('queueRemove'))
+                    : null,
+                )),
+              ),
         )
 
       const groups = []
@@ -1233,6 +1382,7 @@ window.__ModuleLoader__.load({
         currentCard,
         relayCard,
         stageCard,
+        queueCard,
         boardCard,
       )
     }

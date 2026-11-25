@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.0
+
+- Conversation to-do queue for **any** conversation: pre-write a series of prompts; the next is sent when a turn ends; pause, resume and clear are supported.
+- Renamed the displayed plugin to **协作待办 / Collab To-do** and rewrote the intro/descriptions to lead with collaboration, with the to-do queue as the supporting feature.
+- Managers keep the stage queue for dispatching worker stages.
+
 ## 1.4.3
 
 - Manager mode: right-click **Set as project manager (start)** creates a starter worker and sends the conversation a bootstrap instruction.
