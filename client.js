@@ -1224,6 +1224,7 @@ window.__ModuleLoader__.load({
         }, t('starLabel')),
       )
       return h('div', { style: S.page },
+        starRow,
         header,
         feedback,
         h('h3', { style: S.cardTitle }, workTitle === undefined ? t('currentTitle') : `${t('currentTitle')} · ${workTitle}`),
@@ -1231,7 +1232,6 @@ window.__ModuleLoader__.load({
         relayCard,
         stageCard,
         boardCard,
-        starRow,
       )
     }
 

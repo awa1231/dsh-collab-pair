@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+- Moved the GitHub star button to the top of the Settings page.
+
 ## 1.4.0
 
 - Settings page: **Cross-device** card (off / self-hosted hub / free ntfy.sh) with save, connection test, status, worker aliases and remote worker links.
