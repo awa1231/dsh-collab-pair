@@ -136,7 +136,8 @@ Any conversation, not only a manager, can have its own prompt queue:
 
 - Add items in the **Conversation to-do** card, or `/collab queue {"action":"add","title":"…","prompt":"…"}`.
 - `start` sends the first pending prompt as a normal user message; when that turn ends, the next pending prompt is sent automatically.
-- `pause` stops auto-advance after the current turn, `resume` re-enables it, and `clear` removes pending items.
+- `pause` stops auto-advance after the current turn, `resume` re-enables it and sends the next pending prompt when the queue is idle, and `clear` removes pending items.
+- If a turn ends with an error/abort, that item is marked **failed** and auto-advance pauses; press **Reset queue** to return a stuck `sent` item to pending and retry.
 - The queue is stored per conversation and survives plugin reloads.
 
 ## Projects
@@ -405,7 +406,8 @@ collab_dispatch({ worker: "前端", task: "…" })
 
 - 在「对话待办」卡片里添加，或 `/collab queue {"action":"add","title":"…","prompt":"…"}`。
 - `start` 把第一条待发提示词作为普通用户消息发进去；该回合结束后，自动发送下一条。
-- `pause` 在当前回合后停止自动连发，`resume` 恢复，`clear` 清空待发。
+- `pause` 在当前回合后停止自动连发，`resume` 恢复并在队列空闲时发送下一条，`clear` 清空待发。
+- 如果某轮以错误/中止结束，该条会标记为 **失败** 并暂停自动连发；点「重置队列」可把卡在 `sent` 的条目退回待发并重试。
 - 队列按对话保存，插件重载后仍在。
 
 ## 项目

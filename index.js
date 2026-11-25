@@ -41,7 +41,9 @@ const DONE = 'done'
 const STOPPED = 'stopped'
 const REPORTS = new Set(['done', 'partial', 'blocked'])
 const PROMPT_TIMEOUT_MS = 180000
-const ENGINE = 'collab-pair/1.5.2'
+const QUEUE_LIMIT = 100
+const QUEUE_DONE_LIMIT = 20
+const ENGINE = 'collab-pair/1.5.3'
 const PREFIX_DEFAULTS = {
   zh: { manager: '【项目经理】', worker: '【员工】' },
   en: { manager: '[Manager]', worker: '[Worker]' },
@@ -592,6 +594,7 @@ export function apply(ctx, rawConfig) {
   setTimeout(() => { void recoverPendingLinks() }, 5000)
   setTimeout(() => { void backfillProjects() }, 3000)
   setTimeout(() => { void relocalizePrefixes() }, 4000)
+  setTimeout(() => { if (alive) void recoverQueues() }, 6000)
   setTimeout(() => { if (alive) void remoteLoop() }, 2000)
 
   registerTools()
@@ -810,11 +813,11 @@ export function apply(ctx, rawConfig) {
 
   function normalizeQueue(value, sessionId) {
     const items = []
-    for (const item of Array.isArray(value?.items) ? value.items.slice(0, 100) : []) {
+    for (const item of Array.isArray(value?.items) ? value.items : []) {
       if (item === null || typeof item !== 'object') continue
       const prompt = typeof item.prompt === 'string' ? item.prompt.trim() : ''
       if (prompt === '') continue
-      const status = item.status === 'sent' || item.status === 'done' ? item.status : 'pending'
+      const status = item.status === 'sent' || item.status === 'done' || item.status === 'failed' ? item.status : 'pending'
       items.push({
         id: typeof item.id === 'string' ? item.id : `q-${randomUUID().slice(0, 8)}`,
         title: typeof item.title === 'string' ? item.title : '',
@@ -826,17 +829,26 @@ export function apply(ctx, rawConfig) {
         ...(typeof item.marker === 'string' ? { marker: item.marker } : {}),
       })
     }
+    // Keep every pending/sent/failed item; only trim the oldest done history.
+    const doneIndexes = []
+    for (let index = 0; index < items.length; index++) {
+      if (items[index].status === 'done') doneIndexes.push(index)
+    }
+    const keepDone = new Set(doneIndexes.slice(-QUEUE_DONE_LIMIT))
+    const kept = items.filter((item, index) => item.status !== 'done' || keepDone.has(index))
     let activeId = typeof value?.activeId === 'string' ? value.activeId : null
-    if (activeId !== null && !items.some((item) => item.id === activeId && item.status === 'sent')) activeId = null
+    if (activeId !== null && !kept.some((item) => item.id === activeId && item.status === 'sent')) activeId = null
     if (activeId === null) {
-      const sent = items.find((item) => item.status === 'sent')
+      const sent = kept.find((item) => item.status === 'sent')
       if (sent !== undefined) activeId = sent.id
     }
     return {
       sessionId,
-      items,
+      items: kept,
       activeId,
       auto: value?.auto !== false,
+      started: value?.started === true || kept.some((item) => item.status === 'sent' || item.status === 'done' || item.status === 'failed'),
+      lastError: typeof value?.lastError === 'string' && value.lastError !== '' ? value.lastError : null,
       updatedAt: Number.isFinite(value?.updatedAt) ? value.updatedAt : Date.now(),
     }
   }
@@ -874,6 +886,7 @@ export function apply(ctx, rawConfig) {
       sessionId: queue.sessionId,
       auto: queue.auto,
       active: queue.activeId,
+      lastError: queue.lastError ?? null,
       items: queue.items.map((item) => ({
         id: item.id,
         title: item.title,
@@ -899,6 +912,8 @@ export function apply(ctx, rawConfig) {
     next.requestId = requestId
     next.marker = marker
     queue.activeId = next.id
+    queue.started = true
+    queue.lastError = null
     queue.updatedAt = Date.now()
     await persistQueue(queue)
     const text = [
@@ -918,6 +933,7 @@ export function apply(ctx, rawConfig) {
       delete next.requestId
       delete next.marker
       queue.activeId = null
+      queue.lastError = clip(error instanceof Error ? error.message : String(error), 500)
       queue.updatedAt = Date.now()
       await persistQueue(queue)
       throw error
@@ -941,28 +957,111 @@ export function apply(ctx, rawConfig) {
       return
     }
     if (events === undefined || !claimedQueue(events, active)) return
+    const reason = event.data?.reason
+    const kind = typeof reason?.kind === 'string' ? reason.kind : (typeof reason === 'string' && reason !== '' ? reason : 'unknown')
+    if (kind !== 'completed' && kind !== 'max-tokens') {
+      active.status = 'failed'
+      queue.activeId = null
+      queue.auto = false
+      queue.lastError = '本轮结束原因：' + kind + '；未自动续发。'
+      queue.updatedAt = Date.now()
+      await persistQueue(queue)
+      return
+    }
     active.status = 'done'
     active.completedAt = Date.now()
     queue.activeId = null
+    queue.lastError = null
     queue.updatedAt = Date.now()
+    trimQueue(queue)
     await persistQueue(queue)
     if (!queue.auto) return
     if (queue.items.some((item) => item.status === 'pending')) {
       try {
         await startQueueItem(session.id, AbortSignal.timeout(PROMPT_TIMEOUT_MS))
       } catch (error) {
+        queue.lastError = clip(error instanceof Error ? error.message : String(error), 500)
+        queue.updatedAt = Date.now()
+        await persistQueue(queue)
         ctx.logger.warn(`collab-pair: sending the next queue item for ${session.id} failed: ${String(error)}`)
       }
     }
   }
 
   function claimedQueue(events, item) {
+    if (typeof item.requestId !== 'string' || item.requestId === '') return false
     for (const event of events) {
       if (event.type !== 'user/message') continue
-      if (typeof item.requestId === 'string' && event.data?.source?.rpcId === item.requestId) return true
-      if (typeof item.marker === 'string' && messageText(event.data).includes(item.marker)) return true
+      if (event.data?.source?.rpcId === item.requestId) return true
     }
     return false
+  }
+
+  /** Keep all live items but only the newest done history. */
+  function trimQueue(queue) {
+    const done = queue.items.filter((item) => item.status === 'done')
+    if (done.length <= QUEUE_DONE_LIMIT) return
+    const keep = new Set(done.slice(-QUEUE_DONE_LIMIT).map((item) => item.id))
+    queue.items = queue.items.filter((item) => item.status !== 'done' || keep.has(item.id))
+  }
+
+  /** Return every sent item to pending and clear the active/failure state. */
+  async function resetQueue(sessionId) {
+    const queue = await readQueue(sessionId)
+    for (const item of queue.items) {
+      if (item.status !== 'sent') continue
+      item.status = 'pending'
+      delete item.sentAt
+      delete item.requestId
+      delete item.marker
+    }
+    queue.activeId = null
+    queue.lastError = null
+    queue.updatedAt = Date.now()
+    await persistQueue(queue)
+    return queue
+  }
+
+  /** Resume idle auto-advance queues after activation. */
+  async function recoverQueues() {
+    try {
+      const candidates = new Map(queues)
+      const domain = await remoteReady.catch(() => undefined)
+      if (domain !== undefined) {
+        try {
+          for (const [key, value] of domain.table('state').entries()) {
+            if (typeof key !== 'string' || !key.startsWith('queue:')) continue
+            const sessionId = key.slice('queue:'.length)
+            if (sessionId === '') continue
+            if (!queues.has(sessionId)) queues.set(sessionId, normalizeQueue(value, sessionId))
+            candidates.set(sessionId, queues.get(sessionId))
+          }
+        } catch (error) {
+          ctx.logger.warn('collab-pair: scanning queues for recovery failed: ' + String(error))
+        }
+      }
+      for (const [sessionId, queue] of candidates) {
+        if (!alive) return
+        if (queue === undefined || queue.auto !== true || queue.started !== true || queue.activeId !== null) continue
+        if (!queue.items.some((item) => item.status === 'pending')) continue
+        try {
+          const current = await readQueue(sessionId)
+          if (current.auto !== true || current.started !== true || current.activeId !== null) continue
+          if (!current.items.some((item) => item.status === 'pending')) continue
+          await startQueueItem(sessionId, AbortSignal.timeout(PROMPT_TIMEOUT_MS))
+        } catch (error) {
+          const current = await readQueue(sessionId).catch(() => undefined)
+          if (current !== undefined && current.activeId === null) {
+            current.lastError = clip(error instanceof Error ? error.message : String(error), 500)
+            current.updatedAt = Date.now()
+            await persistQueue(current)
+          }
+          ctx.logger.warn('collab-pair: recovering the queue for ' + sessionId + ' failed: ' + String(error))
+        }
+      }
+    } catch (error) {
+      ctx.logger.warn('collab-pair: queue recovery failed: ' + String(error))
+    }
   }
 
   function hubConfigured() {
@@ -3123,6 +3222,9 @@ export function apply(ctx, rawConfig) {
             if (sub === 'add') {
               const prompt = typeof args?.prompt === 'string' ? args.prompt.trim() : ''
               if (prompt === '') return { kind: 'error', text: 'prompt 不能为空。' }
+              if (queue.items.length >= QUEUE_LIMIT) {
+                return { kind: 'error', text: '队列最多 ' + QUEUE_LIMIT + ' 条；请先清理待发或已完成条目。' }
+              }
               queue.items.push({
                 id: `q-${randomUUID().slice(0, 8)}`,
                 title: typeof args?.title === 'string' ? args.title.trim() : '',
@@ -3141,11 +3243,22 @@ export function apply(ctx, rawConfig) {
               queue.auto = sub === 'resume'
               queue.updatedAt = Date.now()
               await persistQueue(queue)
+              if (sub === 'resume' && queue.activeId === null && queue.items.some((item) => item.status === 'pending')) {
+                const { queue: started, item } = await startQueueItem(agent.id, invocation.signal)
+                return { kind: 'success', text: JSON.stringify({ ...queueView(started), started: item.id }) }
+              }
               return { kind: 'success', text: JSON.stringify(queueView(queue)) }
             }
+            if (sub === 'reset') {
+              const reset = await resetQueue(agent.id)
+              return { kind: 'success', text: JSON.stringify(queueView(reset)) }
+            }
             if (sub === 'remove') {
-              const index = clampInt(args?.index, 1, 100, 0)
-              const item = index > 0 ? queue.items[index - 1] : undefined
+              const index = Number(args?.index)
+              if (!Number.isInteger(index) || index < 1 || index > queue.items.length) {
+                return { kind: 'error', text: 'index 必须是 1 到当前条目数之间的整数。' }
+              }
+              const item = queue.items[index - 1]
               if (item === undefined) return { kind: 'error', text: 'index 超出范围。' }
               if (item.status !== 'pending') return { kind: 'error', text: '只能删除尚未发送的条目。' }
               queue.items.splice(index - 1, 1)
@@ -3159,7 +3272,7 @@ export function apply(ctx, rawConfig) {
               await persistQueue(queue)
               return { kind: 'success', text: JSON.stringify(queueView(queue)) }
             }
-            return { kind: 'error', text: 'action 必须是 list | add | start | pause | resume | remove | clear。' }
+            return { kind: 'error', text: 'action 必须是 list | add | start | pause | resume | reset | remove | clear。' }
           }
           if (action === 'manage') {
             const agent = invocation.agent

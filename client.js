@@ -144,6 +144,10 @@ window.__ModuleLoader__.load({
         queueUntitled: '未命名任务',
         queueAuto: '自动连发',
         queuePaused: '已暂停',
+        queueFailed: '失败',
+        queueReset: '重置队列',
+        queueLoadFailed: '读取队列失败',
+        queueLastError: '最近错误',
         stageAdded: '阶段已添加。',
         stageStarted: '阶段已开始。',
         stageFinished: '阶段已完成。',
@@ -298,6 +302,10 @@ window.__ModuleLoader__.load({
         queueUntitled: 'Untitled task',
         queueAuto: 'Auto-advance',
         queuePaused: 'Paused',
+        queueFailed: 'Failed',
+        queueReset: 'Reset queue',
+        queueLoadFailed: 'Failed to load the queue',
+        queueLastError: 'Last error',
         stageAdded: 'Stage added.',
         stageStarted: 'Stage started.',
         stageFinished: 'Stage finished.',
@@ -425,8 +433,12 @@ window.__ModuleLoader__.load({
       const [queueTitle, setQueueTitle] = React.useState('')
       const [queuePrompt, setQueuePrompt] = React.useState('')
       const [queueBusy, setQueueBusy] = React.useState(false)
+      const [queueError, setQueueError] = React.useState(null)
       const commandsRef = React.useRef(commands)
       commandsRef.current = commands
+      const workIdRef = React.useRef(workId)
+      workIdRef.current = workId
+      const queueReadSeq = React.useRef(0)
 
       React.useEffect(() => {
         if (workId !== undefined) return
@@ -511,6 +523,7 @@ window.__ModuleLoader__.load({
         setError(null)
         try {
           await loadBoard(workId)
+          if (!queueBusy) await readQueue(workId)
           const relay = await readRelay(workId).catch(() => null)
           if (relay !== null && relay.mode !== 'off') await loadAliases(workId).catch(() => undefined)
         } catch (cause) {
@@ -584,32 +597,51 @@ window.__ModuleLoader__.load({
         return value
       }
 
-      /** Run one command, show the dictionary text, then refresh the board. */
-      const readQueue = async (sessionId) => {
+      /** Read one session's queue; stale session responses are discarded. */
+      const readQueue = async (sessionId, isCancelled) => {
+        const seq = ++queueReadSeq.current
+        const stale = () => (typeof isCancelled === 'function' && isCancelled())
+          || workIdRef.current !== sessionId || seq !== queueReadSeq.current
         try {
           const value = await runCommand(commandsRef.current, sessionId, '/collab queue {"action":"list"}')
-          if (value !== null && typeof value === 'object' && Array.isArray(value.items)) setQueue(value)
+          if (value !== null && typeof value === 'object' && Array.isArray(value.items)
+            && value.sessionId === sessionId && !stale()) {
+            setQueue(value)
+            setQueueError(null)
+          }
           return value
-        } catch {
-          setQueue(null)
+        } catch (cause) {
+          if (!stale()) {
+            setQueue(null)
+            setQueueError(cause instanceof Error ? cause.message : String(cause))
+          }
           return null
         }
       }
 
       const queueAction = async (action, extra = {}) => {
         if (workId === undefined) return
+        const sessionId = workId
+        const seq = ++queueReadSeq.current
         setQueueBusy(true)
         setError(null)
         setNotice(null)
+        setQueueError(null)
         try {
-          const value = await runCommand(commandsRef.current, workId, `/collab queue ${JSON.stringify({ action, ...extra })}`)
-          if (value !== null && typeof value === 'object' && Array.isArray(value.items)) setQueue(value)
-          if (action === 'add') {
+          const value = await runCommand(commandsRef.current, sessionId, `/collab queue ${JSON.stringify({ action, ...extra })}`)
+          const current = workIdRef.current === sessionId && seq === queueReadSeq.current
+          if (current && value !== null && typeof value === 'object' && Array.isArray(value.items) && value.sessionId === sessionId) {
+            setQueue(value)
+            setQueueError(null)
+          }
+          if (action === 'add' && current) {
             setQueueTitle('')
             setQueuePrompt('')
           }
         } catch (cause) {
-          setError(cause instanceof Error ? cause.message : String(cause))
+          if (workIdRef.current === sessionId && seq === queueReadSeq.current) {
+            setError(cause instanceof Error ? cause.message : String(cause))
+          }
         } finally {
           setQueueBusy(false)
         }
@@ -618,9 +650,16 @@ window.__ModuleLoader__.load({
       React.useEffect(() => {
         if (workId === undefined) {
           setQueue(null)
-          return
+          setQueueError(null)
+          return undefined
         }
-        void readQueue(workId)
+        let cancelled = false
+        setQueue(null)
+        setQueueError(null)
+        void readQueue(workId, () => cancelled)
+        return () => {
+          cancelled = true
+        }
       }, [workId])
 
       const runAction = async (line, successText) => {
@@ -868,7 +907,7 @@ window.__ModuleLoader__.load({
             h('option', { value: 'en' }, t('langEn'))),
           ),
           h('div', { style: S.row },
-            h('button', { type: 'button', style: S.secondary, disabled: busy || workId === undefined, onClick: () => void refresh() }, t('refresh')),
+            h('button', { type: 'button', style: S.secondary, disabled: busy || queueBusy || workId === undefined, onClick: () => void refresh() }, t('refresh')),
             busy ? h('span', { style: S.muted }, t('busy')) : null,
           ),
         ),
@@ -1171,6 +1210,9 @@ window.__ModuleLoader__.load({
             h('span', { style: S.badge }, queue !== null && queue.auto === false ? t('queuePaused') : t('queueAuto')),
           ),
           h('p', { style: S.intro }, t('queueIntro')),
+          queue !== null && typeof queue.lastError === 'string' && queue.lastError !== ''
+            ? h('p', { style: { ...S.notice, color: 'var(--dsw-alias-state-error-primary)' } }, t('queueLastError') + '：' + queue.lastError)
+            : null,
           h('label', { style: S.label }, t('queueAddTitle'),
             h('input', {
               style: S.input,
@@ -1212,16 +1254,29 @@ window.__ModuleLoader__.load({
               disabled: queueBusy || queue === null || !queueItems.some((item) => item.status === 'pending'),
               onClick: () => void queueAction('clear'),
             }, t('queueClear')),
+            queue !== null && ((queue.active !== null && queue.active !== undefined) || (typeof queue.lastError === 'string' && queue.lastError !== ''))
+              ? h('button', {
+                type: 'button',
+                style: S.secondary,
+                disabled: queueBusy,
+                onClick: () => void queueAction('reset'),
+              }, t('queueReset'))
+              : null,
           ),
-          queue === null
-            ? h('p', { style: S.intro }, t('loading'))
-            : queueItems.length === 0
-              ? h('p', { style: S.intro }, t('queueEmpty'))
-              : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
-                queueItems.map((item, index) => h('div', { key: item.id, style: S.worker },
+          queueError !== null
+            ? h('p', { style: { ...S.notice, color: 'var(--dsw-alias-state-error-primary)' } }, t('queueLoadFailed') + '：' + queueError)
+            : queue === null
+              ? h('p', { style: S.intro }, t('loading'))
+              : queueItems.length === 0
+                ? h('p', { style: S.intro }, t('queueEmpty'))
+                : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+                  queueItems.map((item, index) => h('div', { key: item.id, style: S.worker },
                   h('div', { style: S.workerMain },
                     h('div', { style: S.workerName }, `${index + 1}. ${item.title || t('queueUntitled')}`),
-                    h('div', { style: S.muted }, `${item.status === 'pending' ? t('queuePending') : item.status === 'sent' ? t('queueSent') : t('queueDone')} · ${item.prompt}`),
+                    item.status === 'failed'
+                      ? h('span', { style: { ...S.badge, alignSelf: 'flex-start', color: 'var(--dsw-alias-state-error-primary)' } }, t('queueFailed'))
+                      : null,
+                    h('div', { style: S.muted }, `${item.status === 'pending' ? t('queuePending') : item.status === 'sent' ? t('queueSent') : item.status === 'failed' ? t('queueFailed') : t('queueDone')} · ${item.prompt}`),
                   ),
                   item.status === 'pending'
                     ? h('button', {

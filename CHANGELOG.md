@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.3
+
+- Queue reliability: strict `remove` index, 100-item cap with done trimming, `reset` action/button for stuck `sent` items, startup recovery only for queues the user started, `resume` sends the next item, `failed` state (with auto-pause) on error/aborted turns, client session-race and read-error handling, and rpcId-only turn claims.
+
 ## 1.5.2
 
 - Cross-device readiness: `hub.js` prints LAN addresses; Settings and **Test connection** warn when the hub URL is `127.0.0.1`/`localhost`; README checklist (reachable health URL, same room/token, distinct device names, files are not shared).
