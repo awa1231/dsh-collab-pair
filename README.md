@@ -2,6 +2,8 @@
 
 > A DSH plugin for large projects: link one project-manager conversation to one or more worker conversations. Dispatch each round once from the manager instead of repeating prompts across conversations; results come back automatically, and unattended runs keep moving.
 
+[**GitHub**](https://github.com/awa1231/dsh-collab-pair) · [Give it a star ★](https://github.com/awa1231/dsh-collab-pair)
+
 ## Install
 
 ```bash
@@ -224,6 +226,8 @@ One record per worker lives in `$DSH_HOME/storages/collab_pair.json` (storage-do
 # 中文说明
 
 > DSH 插件：一个项目经理对话管理多个员工对话，任务自动流转，并提供全部任务看板。
+
+[**GitHub**](https://github.com/awa1231/dsh-collab-pair) · [给个 Star ★](https://github.com/awa1231/dsh-collab-pair)
 
 ## 安装
 

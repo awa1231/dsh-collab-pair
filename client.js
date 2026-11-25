@@ -35,6 +35,7 @@ window.__ModuleLoader__.load({
         modePermShort: '永久',
         projectLabel: '项目',
         remoteLabel: '远程',
+        starLabel: '在 GitHub 上给个 Star ★',
         projectUnnamed: '未命名项目',
         projectSave: '保存项目名',
         projectSaved: '项目名已更新',
@@ -98,6 +99,7 @@ window.__ModuleLoader__.load({
         modePermShort: 'Permanent',
         projectLabel: 'Project',
         remoteLabel: 'remote',
+        starLabel: 'Star it on GitHub ★',
         projectUnnamed: 'Unnamed project',
         projectSave: 'Save project name',
         projectSaved: 'Project name updated',
@@ -147,6 +149,7 @@ window.__ModuleLoader__.load({
       input: { width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--dsw-alias-border-l1)', background: 'var(--dsw-alias-bg-base)', color: 'var(--dsw-alias-label-primary)', fontSize: 13, fontFamily: 'inherit' },
       primary: { padding: '8px 14px', borderRadius: 8, border: '1px solid transparent', background: 'var(--dsw-alias-brand-primary)', color: '#fff', fontSize: 13, cursor: 'pointer' },
       secondary: { padding: '6px 12px', borderRadius: 8, border: '1px solid var(--dsw-alias-border-l2)', background: 'transparent', color: 'var(--dsw-alias-label-primary)', fontSize: 12, cursor: 'pointer' },
+      starLink: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, border: '1px solid var(--dsw-alias-border-l2)', color: 'var(--dsw-alias-label-secondary)', fontSize: 12, textDecoration: 'none' },
       danger: { padding: '6px 12px', borderRadius: 8, border: '1px solid var(--dsw-alias-state-error-primary)', background: 'transparent', color: 'var(--dsw-alias-state-error-primary)', fontSize: 12, cursor: 'pointer' },
       badge: { display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600, background: 'var(--dsw-alias-bg-layer-2)', whiteSpace: 'nowrap' },
       mono: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 11, color: 'var(--dsw-alias-label-secondary)', wordBreak: 'break-all' },
@@ -571,12 +574,21 @@ window.__ModuleLoader__.load({
       }
 
       const workTitle = sessions.find((row) => row.id === workId)?.title
+      const starRow = h('div', { style: { display: 'flex', justifyContent: 'center', padding: '2px 0 6px' } },
+        h('a', {
+          href: 'https://github.com/awa1231/dsh-collab-pair',
+          target: '_blank',
+          rel: 'noreferrer noopener',
+          style: S.starLink,
+        }, t('starLabel')),
+      )
       return h('div', { style: S.page },
         header,
         feedback,
         h('h3', { style: S.cardTitle }, workTitle === undefined ? t('currentTitle') : `${t('currentTitle')} · ${workTitle}`),
         currentCard,
         boardCard,
+        starRow,
       )
     }
 

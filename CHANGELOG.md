@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.1
+
+- Added a **Star on GitHub** button at the bottom of the Settings page.
+- Added repository/homepage metadata so npm links back to the GitHub repo.
+
 ## 1.3.0
 
 - Cross-device collaboration: `hub.js` relay plus `collab_remote` (`alias` on the worker device, `link` on the manager device).

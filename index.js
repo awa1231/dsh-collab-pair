@@ -41,7 +41,7 @@ const DONE = 'done'
 const STOPPED = 'stopped'
 const REPORTS = new Set(['done', 'partial', 'blocked'])
 const PROMPT_TIMEOUT_MS = 180000
-const ENGINE = 'collab-pair/1.3.0'
+const ENGINE = 'collab-pair/1.3.1'
 
 /** A recoverable failure whose message is meant for the model. */
 class CollabError extends Error {}
