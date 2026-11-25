@@ -60,6 +60,7 @@ The page only links, unlinks, and reports status. Goals, tasks, and acceptance s
 
 - The settings page follows the app language; English and Chinese ship in the package.
 - Generated collaboration messages follow the `language` config (`zh` or `en`, default `zh`). Switch it in the page header (**Message language**) or with `/collab language en`. The command persists the config and reloads the plugin.
+- Built-in title prefixes follow `language`: `【项目经理】`/`【员工】` for zh, `[Manager]`/`[Worker]` for en. Custom `prefixManager`/`prefixWorker` values override the defaults; switching language re-prefixes linked titles on reload.
 
 ## Unattended runs
 
@@ -319,6 +320,7 @@ dsh plugin add dsh-collab-pair
 
 - 设置页跟随应用语言，包内自带中文和英文。
 - 对话里生成的消息由配置 `language` 决定（`zh` / `en`，默认 `zh`）。可在页面顶部「对话消息语言」切换，或用 `/collab language en`；命令会保存配置并重载插件。
+- 内置标题前缀跟随 `language`：中文 `【项目经理】`/`【员工】`，英文 `[Manager]`/`[Worker]`。自定义 `prefixManager`/`prefixWorker` 会覆盖默认；切换语言后重载会自动把已关联对话改成对应前缀。
 
 ## 挂机运行
 

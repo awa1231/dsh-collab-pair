@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.1
+
+- English title prefixes: `[Manager]` / `[Worker]` follow `language: en`; Chinese defaults stay for zh.
+- Custom `prefixManager` / `prefixWorker` still override; switching language re-prefixes linked titles on reload.
+
 ## 1.5.0
 
 - Conversation to-do queue for **any** conversation: pre-write a series of prompts; the next is sent when a turn ends; pause, resume and clear are supported.

@@ -41,7 +41,11 @@ const DONE = 'done'
 const STOPPED = 'stopped'
 const REPORTS = new Set(['done', 'partial', 'blocked'])
 const PROMPT_TIMEOUT_MS = 180000
-const ENGINE = 'collab-pair/1.5.0'
+const ENGINE = 'collab-pair/1.5.1'
+const PREFIX_DEFAULTS = {
+  zh: { manager: '【项目经理】', worker: '【员工】' },
+  en: { manager: '[Manager]', worker: '[Worker]' },
+}
 
 /** A recoverable failure whose message is meant for the model. */
 class CollabError extends Error {}
@@ -61,9 +65,9 @@ function resolveConfig(raw) {
     notifyWorkerOnDone: value.notifyWorkerOnDone !== false,
     autoRelay: value.autoRelay !== false,
     addPrefix: value.addPrefix !== false,
-    prefixManager: prefixText(value.prefixManager, '【项目经理】'),
-    prefixWorker: prefixText(value.prefixWorker, '【员工】'),
     language: value.language === 'en' ? 'en' : 'zh',
+    prefixManager: prefixFor(value.prefixManager, 'manager', value.language === 'en' ? 'en' : 'zh'),
+    prefixWorker: prefixFor(value.prefixWorker, 'worker', value.language === 'en' ? 'en' : 'zh'),
     autoNudge: value.autoNudge !== false,
     nudgeAfterMinutes: clampInt(value.nudgeAfterMinutes, 5, 1440, 20),
     maxNudges: clampInt(value.maxNudges, 1, 20, 3),
@@ -112,6 +116,15 @@ function prefixText(candidate, fallback) {
   const value = candidate.trim()
   if (value === '') return fallback
   return value.length > 24 ? value.slice(0, 24) : value
+}
+
+/** Built-in prefixes follow the message language; custom values stay custom. */
+function prefixFor(candidate, role, language) {
+  const value = typeof candidate === 'string' ? candidate.trim() : ''
+  const fallback = PREFIX_DEFAULTS[language][role]
+  if (value === '') return fallback
+  const builtIn = Object.values(PREFIX_DEFAULTS).some((set) => set[role] === value)
+  return builtIn ? fallback : prefixText(value, fallback)
 }
 
 /** Rounds per worker: 0 (the default) means unlimited. */
@@ -576,6 +589,7 @@ export function apply(ctx, rawConfig) {
   if (cfg.autoNudge) watchdogTimer = setInterval(() => { void runWatchdog() }, 60000)
   setTimeout(() => { void recoverPendingLinks() }, 5000)
   setTimeout(() => { void backfillProjects() }, 3000)
+  setTimeout(() => { void relocalizePrefixes() }, 4000)
   setTimeout(() => { if (alive) void remoteLoop() }, 2000)
 
   registerTools()
@@ -1635,7 +1649,12 @@ export function apply(ctx, rawConfig) {
 
   /** Remove one of our role prefixes from a title. */
   function stripKnownPrefix(title) {
-    for (const prefix of new Set([cfg.prefixManager, cfg.prefixWorker])) {
+    const known = new Set([
+      cfg.prefixManager,
+      cfg.prefixWorker,
+      ...Object.values(PREFIX_DEFAULTS).flatMap((set) => [set.manager, set.worker]),
+    ])
+    for (const prefix of known) {
       if (prefix !== '' && title.startsWith(prefix)) return title.slice(prefix.length).trimStart()
     }
     return title
@@ -1974,6 +1993,20 @@ export function apply(ctx, rawConfig) {
       link.project = name
       link.updatedAt = Date.now()
       await persist(link)
+    }
+  }
+
+  /** Re-apply role prefixes in the current language after a language switch. */
+  async function relocalizePrefixes() {
+    if (!alive || !cfg.addPrefix) return
+    for (const link of [...links.values()]) {
+      if (!alive) return
+      try {
+        await applyPrefix(link.manager, cfg.prefixManager)
+        if (link.remote === undefined) await applyPrefix(link.worker, cfg.prefixWorker)
+      } catch (error) {
+        ctx.logger.warn(`collab-pair: re-prefixing ${link.id} failed: ${String(error)}`)
+      }
     }
   }
 
