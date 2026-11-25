@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.2
+
+- The to-do list (stage queue) card is always visible; when the conversation is not a manager it explains how to make it one.
+- Renamed the card to “阶段待办（To-do）” / “To-do list”.
+
 ## 1.4.1
 
 - Moved the GitHub star button to the top of the Settings page.

@@ -116,7 +116,8 @@ window.__ModuleLoader__.load({
         remoteLink: '关联远端员工',
         remoteMissing: '请填写远端设备和别名。',
         remoteLinkDone: '已关联远端员工，接着给它派发任务。',
-        stageTitle: '阶段队列',
+        stageTitle: '阶段待办（To-do）',
+        stageNoManager: '这个对话还不是项目经理。先在下方关联一个员工，或在侧栏右键该对话选择「设为项目经理（新建员工）」，之后就能在这里预先写多个大阶段。',
         stageIntro: '先写好几个大阶段，完成一个会自动派发下一个。',
         stageEmpty: '还没有阶段。先添加几个大阶段，完成一个会自动派发下一个。',
         stageWorker: '员工',
@@ -251,7 +252,8 @@ window.__ModuleLoader__.load({
         remoteLink: 'Link remote worker',
         remoteMissing: 'Enter the remote device and alias.',
         remoteLinkDone: 'Remote worker linked; dispatch a task next.',
-        stageTitle: 'Stage queue',
+        stageTitle: 'To-do list',
+        stageNoManager: 'This conversation is not a project manager yet. Link a worker below, or right-click the conversation in the sidebar and choose "Set as project manager (new worker)"; then you can pre-write multiple stages here.',
         stageIntro: 'Write a few large stages up front; completing one dispatches the next automatically.',
         stageEmpty: 'No stage yet. Add a few large stages; completing one dispatches the next automatically.',
         stageWorker: 'Worker',
@@ -1017,14 +1019,14 @@ window.__ModuleLoader__.load({
         )
       }
 
-      const stageCard = role !== 'manager'
-        ? null
-        : h('div', { style: S.card },
-          h('div', { style: S.cardHead },
-            h('h3', { style: S.cardTitle }, t('stageTitle')),
-            h('span', { style: S.muted }, t('stageIntro')),
-          ),
-          managed.length === 0
+      const stageCard = h('div', { style: S.card },
+        h('div', { style: S.cardHead },
+          h('h3', { style: S.cardTitle }, t('stageTitle')),
+          h('span', { style: S.muted }, t('stageIntro')),
+        ),
+        role !== 'manager'
+          ? h('p', { style: S.intro }, t('stageNoManager'))
+          : managed.length === 0
             ? h('p', { style: S.intro }, t('stageNoWorker'))
             : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
               h('label', { style: S.label }, t('stageWorker'),
