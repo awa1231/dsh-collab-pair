@@ -17,6 +17,7 @@
 // for dispatch/report round trips; it is deliberately not a durable queue.
 
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import { networkInterfaces } from 'node:os'
 import { createServer } from 'node:http'
 
 const args = new Map()
@@ -192,6 +193,11 @@ const server = createServer(async (request, response) => {
 
 server.listen(port, host, () => {
   console.log(`collab-pair hub listening on http://${host}:${port}`)
+  const lan = Object.values(networkInterfaces()).flat()
+    .filter((entry) => entry !== undefined && entry.family === 'IPv4' && entry.internal !== true)
+    .map((entry) => `http://${entry.address}:${port}`)
+  if (lan.length > 0) console.log(`LAN addresses: ${lan.join('  ')}`)
   console.log(`token: ${token}`)
+  console.log('127.0.0.1/localhost only works on this machine; other devices must use a LAN address or an HTTPS tunnel')
   console.log('put the hub behind HTTPS before using it across untrusted networks')
 })

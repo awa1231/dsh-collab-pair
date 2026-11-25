@@ -77,6 +77,7 @@ window.__ModuleLoader__.load({
         relayNtfy: '免费公共中继 ntfy.sh',
         relayOffHint: '关闭后不再轮询中继，令牌会保留，切回时无需重填。',
         relayHubUrl: 'Hub 地址',
+        relayLocalhostHint: '127.0.0.1 / localhost 只在本机可访问；另一台设备请填这台机器的局域网 IP 或 HTTPS 隧道地址。',
         relayRoom: '房间',
         relayToken: '令牌',
         relayTokenKeep: '留空保留已保存的令牌',
@@ -230,6 +231,7 @@ window.__ModuleLoader__.load({
         relayNtfy: 'Free public relay ntfy.sh',
         relayOffHint: 'Turning it off stops polling and keeps the token for next time.',
         relayHubUrl: 'Hub URL',
+        relayLocalhostHint: '127.0.0.1 / localhost only works on this machine; on another device use this machine’s LAN address or an HTTPS tunnel URL.',
         relayRoom: 'Room',
         relayToken: 'Token',
         relayTokenKeep: 'Leave blank to keep the saved token',
@@ -959,6 +961,9 @@ window.__ModuleLoader__.load({
               disabled: relayField(),
               onChange: (event) => setRelayHubUrl(event.target.value),
             }))
+          : null,
+        relayMode === 'hub' && /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(relayHubUrl.trim())
+          ? h('p', { style: S.hint }, t('relayLocalhostHint'))
           : null,
         relayMode === 'off'
           ? null

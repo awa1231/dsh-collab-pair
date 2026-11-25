@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.2
+
+- Cross-device readiness: `hub.js` prints LAN addresses; Settings and **Test connection** warn when the hub URL is `127.0.0.1`/`localhost`; README checklist (reachable health URL, same room/token, distinct device names, files are not shared).
+- The manager prompt now tells it to use `collab_remote` for workers on another device instead of creating a duplicate local worker.
+
 ## 1.5.1
 
 - English title prefixes: `[Manager]` / `[Worker]` follow `language: en`; Chinese defaults stay for zh.

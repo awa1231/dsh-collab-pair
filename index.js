@@ -41,7 +41,7 @@ const DONE = 'done'
 const STOPPED = 'stopped'
 const REPORTS = new Set(['done', 'partial', 'blocked'])
 const PROMPT_TIMEOUT_MS = 180000
-const ENGINE = 'collab-pair/1.5.1'
+const ENGINE = 'collab-pair/1.5.2'
 const PREFIX_DEFAULTS = {
   zh: { manager: '【项目经理】', worker: '【员工】' },
   en: { manager: '[Manager]', worker: '[Worker]' },
@@ -289,6 +289,7 @@ const LANGUAGES = {
         '',
         '规则：',
         '- 默认自主创建员工：需要人干活时，先用 `collab_worker_create` 建立合适的员工（可按角色建多个），再派发；不要等用户手动新建。',
+        '- 远端设备上的员工用 `collab_remote` 关联（先在设置页的「跨设备协作」里配置中继）；本机员工才用 `collab_worker_create`，不要重复创建。',
         '- 不要自己承担员工的具体执行工作。你负责拆解、派发、验收和决定下一步；自己动手只限于规划、审阅和必要协调，避免因长时间执行而错过员工回报。',
         '- 用 `collab_dispatch` 派发任务；有多个员工时用 `worker` 指定员工（sessionId 或标题），只有一个时可省略。',
         '- 阶段队列：用 `collab_stage` 添加/查看；当前阶段验收通过后调用 `collab_stage({action:"complete"})`，会自动派发下一阶段。',
@@ -429,6 +430,7 @@ const LANGUAGES = {
         '',
         'Rules:',
         '- Create workers by default: when work needs doing, use `collab_worker_create` to make the right worker(s) (multiple roles if needed), then dispatch. Do not wait for the user to create them manually.',
+        '- For a worker on another device use `collab_remote` (configure the relay in the Settings cross-device card first); only create a local worker with `collab_worker_create`. Do not duplicate it.',
         '- Do not do the workers\' execution work yourself. You break down, dispatch, review and decide; your own hands-on work should be limited to planning, review and necessary coordination, so a long execution does not make you miss worker reports.',
         '- Dispatch a round with `collab_dispatch`; when several workers exist, select one with `worker` (session id or title). With a single worker you may omit it.',
         '- Stage queue: manage it with `collab_stage`; when the current stage passes acceptance, call `collab_stage({action:"complete"})` to dispatch the next stage automatically.',
@@ -2366,7 +2368,7 @@ export function apply(ctx, rawConfig) {
     toolExecutors.remote = register({
       name: 'collab_remote',
       description:
-        '跨设备协作（先在插件配置里设置 hubUrl 与 hubToken）：action=alias 在员工设备上把当前对话注册成别名；action=link 在项目经理设备上关联远端设备上的别名；action=aliases / remove-alias / status 查看或维护。',
+        '跨设备协作：在设置页的「跨设备协作」里选择中继并保存（自建 hub 或免费 ntfy.sh）。action=alias 在员工设备上把当前对话注册成别名；action=link 在项目经理设备上关联远端设备上的别名；action=aliases / remove-alias / status 查看或维护。',
       parameters: {
         type: 'object',
         properties: {
@@ -3205,14 +3207,18 @@ export function apply(ctx, rawConfig) {
             if (sub === 'test') {
               if (!relayConfigured()) return { kind: 'error', text: '中继未启用：先选择模式并保存。' }
               try {
+                let message = ''
                 if (cfg.relayMode === 'hub') {
                   await hubFetch(`/v1/head?room=${encodeURIComponent(cfg.hubRoom)}`)
+                  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(cfg.hubUrl)) {
+                    message = '连接成功，但这个地址只在本机可访问；跨设备请改用局域网 IP 或 HTTPS 隧道地址。'
+                  }
                 } else {
                   const response = await fetch(`https://ntfy.sh/${encodeURIComponent(ntfyTopic())}/json?poll=1&since=10m`, { signal: AbortSignal.timeout(15000) })
                   if (!response.ok) throw new Error(`HTTP ${response.status}`)
                   await response.text()
                 }
-                return { kind: 'success', text: JSON.stringify({ ok: true, mode: cfg.relayMode, device: cfg.deviceName, room: cfg.hubRoom }) }
+                return { kind: 'success', text: JSON.stringify({ ok: true, mode: cfg.relayMode, device: cfg.deviceName, room: cfg.hubRoom, ...(message === '' ? {} : { message }) }) }
               } catch (error) {
                 return { kind: 'error', text: `连接测试失败：${error instanceof Error ? error.message : String(error)}` }
               }

@@ -112,6 +112,15 @@ Security: the token is a shared secret for the room; anyone holding it can deliv
 
 If a tunnel is inconvenient, choose **Free public relay (ntfy.sh)** in the Settings card: no account and no deployment. The topic is derived from room + token; messages go through ntfy.sh in 4 KB chunks (the free tier allows about 250 publishes per day per IP). Use a long random token; this is not end-to-end encrypted.
 
+**`127.0.0.1` / `localhost` only works on the machine running the hub.** On every other device use the hub's LAN IP (same network, with the firewall port open) or the HTTPS tunnel URL. `hub.js` prints its LAN addresses at startup. Before relying on a relay, open `<hub-url>/v1/health` from the other device and press **Test connection** in the Settings card.
+
+Cross-device checklist:
+
+- the other device can open `<hub-url>/v1/health`;
+- both devices use the same `hubRoom` and `hubToken`, with **distinct** `deviceName`s;
+- the worker device registered its alias, and the manager linked that device + alias;
+- remote workers run on their own machine, so files are **not** shared: use a common git remote or network drive, or ask the worker to return patches/text in its report.
+
 ## Stage queue
 
 A human can pre-write several large stages for one worker; finishing one dispatches the next automatically.
@@ -371,6 +380,15 @@ collab_dispatch({ worker: "前端", task: "…" })
 安全：token 是整个房间的共享密钥，持有它的人可以向该房间的设备投递提示词。请用足够长的随机 token、HTTPS（隧道）和专用房间。hub 只在内存里保留 15 分钟 / 每房间最多 1000 条消息，不是持久队列。
 
 如果内网穿透不方便，可在设置卡片里选 **免费公共中继（ntfy.sh）**：不用账号、不用部署。topic 由 room + token 派生；消息以 4 KB 分片经过 ntfy.sh（免费额度约每 IP 每天 250 次发布）。请用足够长的随机 token；这不是端到端加密。
+
+**`127.0.0.1` / `localhost` 只对运行 hub 的那台机器有效。** 其他设备要填 hub 所在机器的局域网 IP（同一网络、防火墙放行端口）或 HTTPS 隧道地址；`hub.js` 启动时会打印局域网地址。正式使用前，从另一台设备打开 `<hub 地址>/v1/health`，并在设置卡片里点「测试连接」。
+
+跨设备检查清单：
+
+- 另一台设备能打开 `<hub 地址>/v1/health`；
+- 两台设备的 `hubRoom`、`hubToken` 相同，`deviceName` **不同**；
+- 员工设备已注册别名，经理设备关联了该设备 + 别名；
+- 远程员工在各自机器上执行，**文件不共享**：用共同的 git remote 或网络盘，或让员工在回报里给出 patch/文本。
 
 ## 阶段队列
 
