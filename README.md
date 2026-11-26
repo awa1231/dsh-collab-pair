@@ -52,6 +52,8 @@ Once a conversation is a manager, its prompt tells it to:
 
 The manager card also shows the **project name** and lets you rename it.
 
+The page now opens with a compact **three-step guide** and an expandable **Show details** section; the cross-device and all-tasks cards start collapsed and expand on demand, so the common path (pick a conversation → link / to-do → review) stays one glance away.
+
 The header also has a **Message language** selector (中文 / English). It switches the generated collaboration messages; the page labels follow the app language.
 
 The page only links, unlinks, and reports status. Goals, tasks, and acceptance stay in the manager conversation.
@@ -325,6 +327,8 @@ dsh plugin add dsh-collab-pair
 - 创建员工和派发第一阶段之前，先确认项目目标。
 
 页面只做关联/解除和查看，不代填目标、任务、验收——这些交给项目经理对话。
+
+页面顶部新增**三步上手**和可展开的**详细说明**；「跨设备协作」与「全部任务」默认收起，点「展开」再看，日常路径（选对话 → 关联/待办 → 验收）一眼可见。
 
 ## 中英文
 

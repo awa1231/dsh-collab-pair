@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.4
+
+- Settings page simplified: compact header, a three-step quick guide with expandable detailed instructions, and collapsible cross-device / all-tasks cards.
+- GitHub star button moved into the header row.
+
 ## 1.5.3
 
 - Queue reliability: strict `remove` index, 100-item cap with done trimming, `reset` action/button for stuck `sent` items, startup recovery only for queues the user started, `resume` sends the next item, `failed` state (with auto-pause) on error/aborted turns, client session-race and read-error handling, and rpcId-only turn claims.

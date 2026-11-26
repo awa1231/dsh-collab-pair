@@ -10,6 +10,44 @@ window.__ModuleLoader__.load({
         nav: '协作待办',
         title: '协作待办',
         intro: '把对话组织成协作网络：项目经理自主创建员工、派发任务并验收回报；也可以给任意对话预设一串提示词，完成一轮自动发下一条。核心是协作，待办队列用来把长流程串起来。',
+        guideTitle: '三步上手',
+        guideStep1: '选择要操作的对话（默认当前打开的对话）。',
+        guideStep2: '要协作：在「当前会话」关联员工，或右键对话选「设为项目经理并启动」，让经理自己建员工、派任务、验收。',
+        guideStep3: '要串任务：在下方「对话待办」写好提示词，点「发送下一条」，每轮结束自动发下一条。',
+        guideMore: '查看详细说明',
+        guideLess: '收起详细说明',
+        guideDetail: [
+          '① 关联员工',
+          '• 在「当前会话」选择员工对话后点「关联」；只有一个员工时 worker 可省略。',
+          '• 想新建：填名字后点「新建员工」。',
+          '• 右键侧栏对话 →「设为项目经理并启动」：自动建一个起始员工，并让该对话自己继续建员工。',
+          '',
+          '② 项目经理怎么用',
+          '• 在经理对话里说清目标；经理会用 collab_worker_create 建人、collab_dispatch 派任务。',
+          '• 员工每轮结束会自动回传【协作回报】；验收后继续派发，或 collab_done 收尾。',
+          '• 不要让经理自己埋头干活，上下文留给验收和继续派发。',
+          '',
+          '③ 对话待办（自动连发）',
+          '• 普通对话可用：写多条提示词，点「发送下一条」。',
+          '• 当前回合结束后自动发下一条；可暂停/恢复/清空。',
+          '• 失败/中止会标红并暂停；点「重置队列」把卡住的条目退回待发。',
+          '',
+          '④ 阶段待办（项目经理）',
+          '• 给某个员工预写多个大阶段；点「开始」，验收后「完成并发下一阶段」。',
+          '• 阶段是派给员工的；对话待办是发给当前对话自己的。',
+          '',
+          '⑤ 跨设备',
+          '• 自建 hub：hub 机器运行 node hub.js --port 8787 --token <密钥>；用局域网 IP 或 HTTPS 隧道；127.0.0.1 只在本机有效。',
+          '• 免费 ntfy：两台设备填同一个 room + 长 token，免部署；消息经公共服务器。',
+          '• 员工设备注册别名；经理设备填设备名+别名关联；点「测试连接」。',
+          '• 远程员工文件不共享：用共同 git remote/网络盘，或让员工回报 patch。',
+          '',
+          '⑥ 语言与前缀',
+          '• 页面顶部切换消息语言；中文前缀【项目经理】/【员工】，英文 [Manager]/[Worker]。',
+        ].join('\n'),
+        summaryExpand: '展开',
+        summaryCollapse: '收起',
+        summaryRelayHint: '自建 hub 或免费 ntfy.sh；两台设备同 room/token。',
         workSession: '工作会话',
         workSessionHint: '选择要操作的对话。建立关联时，它就是项目经理对话。',
         messageLanguage: '对话消息语言',
@@ -168,6 +206,44 @@ window.__ModuleLoader__.load({
         nav: 'Collab To-do',
         title: 'Collab To-do',
         intro: 'Organise conversations into a collaboration network: a manager creates workers, dispatches tasks and reviews reports; pre-write a prompt queue for any conversation to advance after each turn. Collaboration is the core; the to-do queue strings long workflows together.',
+        guideTitle: 'Three steps',
+        guideStep1: 'Pick the conversation to work on (the open one is selected by default).',
+        guideStep2: 'To collaborate: link a worker in **Current conversation**, or right-click a conversation and choose **Set as project manager (start)** so the manager creates workers, dispatches and reviews.',
+        guideStep3: 'To string tasks: add prompts to **Conversation to-do** below and click **Send next**; the next one is sent when a turn ends.',
+        guideMore: 'Show details',
+        guideLess: 'Hide details',
+        guideDetail: [
+          '① Link a worker',
+          '• In Current conversation, pick a worker conversation and click Link; with one worker you can omit worker.',
+          '• To create one: type a name and click New worker.',
+          '• Right-click a sidebar conversation → Set as project manager (start): creates a starter worker and lets that conversation create more itself.',
+          '',
+          '② How the manager works',
+          '• State the goal in the manager conversation; it uses collab_worker_create and collab_dispatch.',
+          '• A finished worker turn comes back as a [Collaboration report]; review it, dispatch again, or call collab_done.',
+          '• The manager should not do the workers’ execution; keep its context for review and dispatching.',
+          '',
+          '③ Conversation to-do',
+          '• For any ordinary conversation: add several prompts, then click Send next.',
+          '• The next prompt is sent when the current turn ends; pause, resume or clear pending items.',
+          '• Failed/aborted items turn red and pause auto-advance; Reset queue returns stuck items to pending.',
+          '',
+          '④ Stage queue (manager)',
+          '• Pre-write stages for one worker; Start, then Complete to dispatch the next stage.',
+          '• Stages go to workers; the conversation to-do goes to this conversation itself.',
+          '',
+          '⑤ Cross-device',
+          '• Self-hosted hub: run node hub.js --port 8787 --token <secret>; use a LAN IP or HTTPS tunnel; 127.0.0.1 is local only.',
+          '• Free ntfy: same room + long token on both devices; no deployment, public server.',
+          '• Worker device registers an alias; manager links device + alias; press Test connection.',
+          '• Remote workers do not share files: use a common git remote/network drive, or return patches.',
+          '',
+          '⑥ Language and prefixes',
+          '• Switch message language at the top; zh prefixes 【项目经理】/【员工】, en [Manager]/[Worker].',
+        ].join('\n'),
+        summaryExpand: 'Expand',
+        summaryCollapse: 'Collapse',
+        summaryRelayHint: 'Self-hosted hub or free ntfy.sh; both devices share room/token.',
         workSession: 'Working conversation',
         workSessionHint: 'The conversation to act on. When you create a link, it becomes the project manager.',
         messageLanguage: 'Message language',
@@ -433,6 +509,9 @@ window.__ModuleLoader__.load({
       const [queueTitle, setQueueTitle] = React.useState('')
       const [queuePrompt, setQueuePrompt] = React.useState('')
       const [queueBusy, setQueueBusy] = React.useState(false)
+      const [showGuide, setShowGuide] = React.useState(false)
+      const [showRelay, setShowRelay] = React.useState(false)
+      const [showBoard, setShowBoard] = React.useState(false)
       const [queueError, setQueueError] = React.useState(null)
       const commandsRef = React.useRef(commands)
       commandsRef.current = commands
@@ -879,32 +958,43 @@ window.__ModuleLoader__.load({
         return wait === '' ? base : `${base} · ${t('waited', { time: wait })}`
       }
 
+      const starLink = h('a', {
+        href: 'https://github.com/awa1231/dsh-collab-pair',
+        target: '_blank',
+        rel: 'noreferrer noopener',
+        style: S.starLink,
+      }, t('starLabel'))
       const header = h('div', { style: S.page },
-        h('h2', { style: S.title }, t('title')),
-        h('p', { style: S.intro }, t('intro')),
-        h('div', { style: S.card },
-          h('label', { style: S.label }, t('workSession'),
-            h('select', {
-              style: S.input,
-              value: workId ?? '',
-              disabled: busy || sessions.length === 0,
-              onChange: (event) => setWorkId(event.target.value),
-            },
-            sessions.length === 0
-              ? h('option', { value: '' }, t('noSessions'))
-              : sessions.map((row) => h('option', { key: row.id, value: row.id }, `${row.title}${row.running ? ' · ●' : ''}`))),
+        h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' } },
+          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 } },
+            h('h2', { style: S.title }, t('title')),
+            h('p', { style: S.intro }, t('intro')),
           ),
-          h('div', { style: S.hint }, t('workSessionHint')),
-          h('div', { style: S.mono }, workId ?? ''),
-          h('label', { style: S.label }, t('messageLanguage'),
-            h('select', {
-              style: S.input,
-              value: board !== null && board.language === 'en' ? 'en' : 'zh',
-              disabled: busy || workId === undefined,
-              onChange: (event) => void changeLanguage(event.target.value),
-            },
-            h('option', { value: 'zh' }, t('langZh')),
-            h('option', { value: 'en' }, t('langEn'))),
+          starLink,
+        ),
+        h('div', { style: S.card },
+          h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 } },
+            h('label', { style: S.label }, t('workSession'),
+              h('select', {
+                style: S.input,
+                value: workId ?? '',
+                disabled: busy || sessions.length === 0,
+                onChange: (event) => setWorkId(event.target.value),
+              },
+              sessions.length === 0
+                ? h('option', { value: '' }, t('noSessions'))
+                : sessions.map((row) => h('option', { key: row.id, value: row.id }, `${row.title}${row.running ? ' · ●' : ''}`))),
+            ),
+            h('label', { style: S.label }, t('messageLanguage'),
+              h('select', {
+                style: S.input,
+                value: board !== null && board.language === 'en' ? 'en' : 'zh',
+                disabled: busy || workId === undefined,
+                onChange: (event) => void changeLanguage(event.target.value),
+              },
+              h('option', { value: 'zh' }, t('langZh')),
+              h('option', { value: 'en' }, t('langEn'))),
+            ),
           ),
           h('div', { style: S.row },
             h('button', { type: 'button', style: S.secondary, disabled: busy || queueBusy || workId === undefined, onClick: () => void refresh() }, t('refresh')),
@@ -919,6 +1009,19 @@ window.__ModuleLoader__.load({
           notice !== null ? h('p', { style: { ...S.notice, color: 'var(--dsw-alias-state-success-primary)' } }, notice) : null,
         )
         : null
+
+      const quickGuide = h('div', { style: S.card },
+        h('div', { style: S.cardHead },
+          h('h3', { style: S.cardTitle }, t('guideTitle')),
+          h('button', { type: 'button', style: S.secondary, onClick: () => setShowGuide(!showGuide) }, showGuide ? t('guideLess') : t('guideMore')),
+        ),
+        h('ol', { style: { margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } },
+          h('li', null, t('guideStep1')),
+          h('li', null, t('guideStep2')),
+          h('li', null, t('guideStep3')),
+        ),
+        showGuide ? h('p', { style: { ...S.hint, whiteSpace: 'pre-wrap', lineHeight: 1.75 } }, t('guideDetail')) : null,
+      )
 
       const stateBadge = (state) => h('span', { style: { ...S.badge, color: state.color } }, state.label)
 
@@ -977,8 +1080,10 @@ window.__ModuleLoader__.load({
       )
 
       const relayCard = h('div', { style: S.card },
-        h('h3', { style: S.cardTitle }, t('relayTitle')),
-        h('p', { style: S.hint }, t('relayIntro')),
+        h('div', { style: S.cardHead },
+          h('h3', { style: S.cardTitle }, t('relayTitle')),
+          h('button', { type: 'button', style: S.secondary, onClick: () => setShowRelay(false) }, t('summaryCollapse')),
+        ),
         h('label', { style: S.label }, t('relayModeLabel'),
           h('select', {
             style: S.input,
@@ -1305,11 +1410,14 @@ window.__ModuleLoader__.load({
 
       const boardCard = h('div', { style: S.card },
         h('div', { style: S.cardHead },
-          h('h3', { style: S.cardTitle }, t('boardTitle')),
-          h('span', { style: S.muted }, t('boardSummary', {
-            active: board === null ? 0 : board.activeCount ?? activeLinks.length,
-            total: board === null ? 0 : board.totalCount ?? links.length,
-          })),
+          h('div', { style: S.row },
+            h('h3', { style: S.cardTitle }, t('boardTitle')),
+            h('span', { style: S.muted }, t('boardSummary', {
+              active: board === null ? 0 : board.activeCount ?? activeLinks.length,
+              total: board === null ? 0 : board.totalCount ?? links.length,
+            })),
+          ),
+          h('button', { type: 'button', style: S.secondary, onClick: () => setShowBoard(false) }, t('summaryCollapse')),
         ),
         board === null
           ? h('p', { style: S.intro }, busy ? t('loading') : t('noTasks'))
@@ -1426,24 +1534,37 @@ window.__ModuleLoader__.load({
       }
 
       const workTitle = sessions.find((row) => row.id === workId)?.title
-      const starRow = h('div', { style: { display: 'flex', justifyContent: 'center', padding: '2px 0 6px' } },
-        h('a', {
-          href: 'https://github.com/awa1231/dsh-collab-pair',
-          target: '_blank',
-          rel: 'noreferrer noopener',
-          style: S.starLink,
-        }, t('starLabel')),
+      const relaySummary = h('div', { style: S.card },
+        h('div', { style: S.cardHead },
+          h('h3', { style: S.cardTitle }, t('relayTitle')),
+          h('span', { style: S.badge }, relayState === null ? t('loading') : relayModeText(relayState.mode)),
+        ),
+        h('div', { style: S.row },
+          h('span', { style: S.muted }, t('summaryRelayHint')),
+          h('button', { type: 'button', style: S.secondary, onClick: () => setShowRelay(true) }, t('summaryExpand')),
+        ),
+      )
+      const totalCount = board !== null && typeof board.totalCount === 'number' ? board.totalCount : 0
+      const activeCount = board !== null && typeof board.activeCount === 'number' ? board.activeCount : 0
+      const boardSummary = h('div', { style: S.card },
+        h('div', { style: S.cardHead },
+          h('h3', { style: S.cardTitle }, t('boardTitle')),
+          h('span', { style: S.muted }, t('boardSummary', { active: activeCount, total: totalCount })),
+        ),
+        h('div', { style: S.row },
+          h('button', { type: 'button', style: S.secondary, onClick: () => setShowBoard(true) }, t('summaryExpand')),
+        ),
       )
       return h('div', { style: S.page },
-        starRow,
         header,
         feedback,
+        quickGuide,
         h('h3', { style: S.cardTitle }, workTitle === undefined ? t('currentTitle') : `${t('currentTitle')} · ${workTitle}`),
         currentCard,
-        relayCard,
+        showRelay ? relayCard : relaySummary,
         stageCard,
         queueCard,
-        boardCard,
+        showBoard ? boardCard : boardSummary,
       )
     }
 

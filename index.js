@@ -43,7 +43,7 @@ const REPORTS = new Set(['done', 'partial', 'blocked'])
 const PROMPT_TIMEOUT_MS = 180000
 const QUEUE_LIMIT = 100
 const QUEUE_DONE_LIMIT = 20
-const ENGINE = 'collab-pair/1.5.3'
+const ENGINE = 'collab-pair/1.5.4'
 const PREFIX_DEFAULTS = {
   zh: { manager: '【项目经理】', worker: '【员工】' },
   en: { manager: '[Manager]', worker: '[Worker]' },
